@@ -37,8 +37,8 @@ type Line struct {
 
 func (alias Alias) PrintVerbose() {
 	fmt.Printf("Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
-	for _, path := range alias.Revision.Load().Paths {
-		fmt.Printf("\tPath: \"%s\"\n", path)
+	for _, todoLine := range alias.Revision.LoadTodos() {
+		fmt.Printf("\tTODO: \"%s\"\n", todoLine.Contents)
 	}
 }
 
@@ -135,7 +135,7 @@ func ListBranches() []Alias {
 	return aliases
 }
 
-func (revision Revision) ReadLines(path string) []Line {
+func (revision Revision) readLines(path string) []Line {
 	out, err := exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), path).Output()
 	if err != nil {
 		log.Fatal(err)
@@ -146,7 +146,7 @@ func (revision Revision) ReadLines(path string) []Line {
 	for _, line := range lines {
 		revision := Revision(line[0:40])
 		lineNumberIndex := strings.Index(line, ")")
-		lineNumber, err := strconv.Atoi(line[41:lineNumberIndex])
+		lineNumber, err := strconv.Atoi(strings.Trim(line[41:lineNumberIndex], " "))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -161,9 +161,9 @@ const (
 )
 
 func (revision *Revision) LoadTodos() []Line {
-	todos := make([]Line, 1)
+	todos := make([]Line, 0)
 	for _, path := range revision.Load().Paths {
-		for _, line := range revision.ReadLines(path) {
+		for _, line := range revision.readLines(path) {
 			matched, err := regexp.MatchString(TodoRegex, line.Contents)
 			if err == nil && matched {
 				todos = append(todos, line)
