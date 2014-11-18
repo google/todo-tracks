@@ -1,11 +1,59 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-<script src= "http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
-<title>TODO Tracker -- List Branches</title>
-<body>
-  Under construction ...
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="todo_tracker.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Latest compiled and minified CSS -->
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
+  <script src="todo_tracker.js"></script>
+  <title>TODO Tracker -- List Branches</title>
+</head>
+<body ng-app="todoTrackerApp">
+  <!-- or "container-fluid" -->
+  <div ng-controller="listBranches">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <hr>
+        <h1 class="text-center csblue">TODO Tracker</h1>
+      </div>
+    </div>
+    <div class="row header-bg-color" style="margin-bottom:8px">
+      <div class="col-md-12">
+        <h4>List Branches</h4>
+      </div>
+    </div>
+  </div>
+  <div class="container" ng-repeat="repo in repositories">
+    <!-- Header to show branches -->
+    <div class="row">
+      <div class="col-md-1">
+        <b>Repository:</b>
+      </div>
+      <div class="col-md-11">
+        {{repo.repo_name}}
+      </div>
+    </div>
+
+    <!-- List each branch -->
+    <div class="row">
+      <div class="col-md-1">
+        Branches:
+      </div>
+      <div class="col-md-11">
+        <table>
+          <tr ng-repeat="branch in repo.branches">
+            <td>
+              {{branch.branch_name}}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  </div>
 </body>
 </html>
 
