@@ -9,6 +9,16 @@ import (
 
 type GitRepository struct{}
 
+func runGitCommandOrDie(cmd *exec.Cmd) string {
+	out, err := cmd.Output()
+	if err != nil {
+		log.Print(cmd.Args)
+		log.Print(out)
+		log.Fatal(err)
+	}
+	return strings.Trim(string(out), " \n")
+}
+
 func parseBranchListLine(line string) Alias {
 	line = strings.Trim(line, "* ")
 	splitLine := strings.Split(line, " ")
@@ -23,11 +33,9 @@ func parseBranchListLine(line string) Alias {
 }
 
 func (gitRepository GitRepository) ListBranches() []Alias {
-	out, err := exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	lines := strings.Split(strings.Trim(string(out), " \n"), "\n")
+	out := runGitCommandOrDie(
+		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
+	lines := strings.Split(out, "\n")
 	aliases := make([]Alias, len(lines))
 	index := 0
 	for _, line := range lines {
@@ -40,12 +48,8 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 }
 
 func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *RevisionContents {
-	out, err := exec.Command("git", "ls-tree", "-r", string(revision)).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	listOutput := strings.Trim(string(out), "\n ")
-	lines := strings.Split(listOutput, "\n")
+	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	lines := strings.Split(out, "\n")
 	paths := make([]string, len(lines))
 	for index, line := range lines {
 		line = strings.Replace(lines[index], "\t", " ", -1)
@@ -56,35 +60,24 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 }
 
 func (gitRepository GitRepository) getSubject(revision Revision) string {
-	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%s\"", "-s").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(out)
+	return runGitCommandOrDie(exec.Command(
+		"git", "show", string(revision), "--format=\"format:%s\"", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorName(revision Revision) string {
-	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%an\"", "-s").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(out)
+	return runGitCommandOrDie(exec.Command(
+		"git", "show", string(revision), "--format=\"format:%an\"", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorEmail(revision Revision) string {
-	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%ae\"", "-s").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(out)
+	return runGitCommandOrDie(exec.Command(
+		"git", "show", string(revision), "--format=\"format:%ae\"", "-s"))
 }
 
 func (gitRepository GitRepository) getTimestamp(revision Revision) int64 {
-	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%ae\"", "-s").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	timestamp, err := strconv.ParseInt(string(out), 10, 64)
+	out := runGitCommandOrDie(exec.Command(
+		"git", "show", string(revision), "--format=\"format:%t\"", "-s"))
+	timestamp, err := strconv.ParseInt(out, 10, 64)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,12 +95,9 @@ func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) Revis
 }
 
 func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path string) []Line {
-	out, err := exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), path).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	blameOutput := strings.Trim(string(out), "\n ")
-	lines := strings.Split(blameOutput, "\n")
+	out := runGitCommandOrDie(
+		exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), path))
+	lines := strings.Split(out, "\n")
 	result := make([]Line, len(lines))
 	for _, line := range lines {
 		revision := Revision(line[0:40])
