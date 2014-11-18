@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +19,12 @@ type RevisionContents struct {
 type Alias struct {
 	Branch string
 	Revision Revision
+}
+
+type Line struct {
+	Revision Revision
+	LineNumber int
+	Contents string
 }
 
 func (alias Alias) PrintVerbose() {
@@ -71,6 +79,44 @@ func ListBranches() []Alias {
 		}
 	}
 	return aliases
+}
+
+func (revision Revision) ReadLines(path string) []Line {
+	out, err := exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), path).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	blameOutput := strings.Trim(string(out), "\n ")
+	lines := strings.Split(blameOutput, "\n")
+	result := make([]Line, len(lines))
+	for _, line := range lines {
+		revision := Revision(line[0:40])
+		lineNumberIndex := strings.Index(line, ")")
+		lineNumber, err := strconv.Atoi(line[41:lineNumberIndex])
+		if err != nil {
+			log.Fatal(err)
+		}
+		contents := line[lineNumberIndex+2:]
+		result = append(result, Line{revision, lineNumber, contents})
+	}
+	return result
+}
+
+const (
+	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
+)
+
+func (revision *Revision) LoadTodos() []Line {
+	todos := make([]Line, 1)
+	for _, path := range revision.Load().Paths {
+		for _, line := range revision.ReadLines(path) {
+			matched, err := regexp.MatchString(TodoRegex, line.Contents)
+			if err == nil && matched {
+				todos = append(todos, line)
+			}
+		}
+	}
+	return todos
 }
 
 // TODO: Serve a webpage instead of printing to stdout
