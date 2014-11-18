@@ -13,26 +13,26 @@ import (
 type Revision string
 type RevisionContents struct {
 	Revision Revision
-	Paths []string
+	Paths    []string
 }
 
 type RevisionMetadata struct {
-	Revision Revision
-	Timestamp int64
-	Subject string
-	AuthorName string
+	Revision    Revision
+	Timestamp   int64
+	Subject     string
+	AuthorName  string
 	AuthorEmail string
 }
 
 type Alias struct {
-	Branch string
+	Branch   string
 	Revision Revision
 }
 
 type Line struct {
-	Revision Revision
+	Revision   Revision
 	LineNumber int
-	Contents string
+	Contents   string
 }
 
 func (alias Alias) PrintVerbose() {
@@ -80,10 +80,10 @@ func (revision Revision) getTimestamp() int64 {
 
 func (revision Revision) GetMetadata() *RevisionMetadata {
 	return &RevisionMetadata{
-		Revision: revision,
-		Timestamp: revision.getTimestamp(),
-		Subject: revision.getSubject(),
-		AuthorName: revision.getAuthorName(),
+		Revision:    revision,
+		Timestamp:   revision.getTimestamp(),
+		Subject:     revision.getSubject(),
+		AuthorName:  revision.getAuthorName(),
 		AuthorEmail: revision.getAuthorEmail(),
 	}
 }
@@ -100,7 +100,7 @@ func (revision Revision) Load() *RevisionContents {
 	for index, line := range lines {
 		line = strings.Replace(lines[index], "\t", " ", -1)
 		lineParts := strings.Split(line, " ")
-		paths[index] = lineParts[len(lineParts) - 1]
+		paths[index] = lineParts[len(lineParts)-1]
 	}
 	return &RevisionContents{revision, paths}
 }
