@@ -36,12 +36,11 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 	out := runGitCommandOrDie(
 		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
 	lines := strings.Split(out, "\n")
-	aliases := make([]Alias, len(lines))
-	index := 0
+	aliases := make([]Alias, 0)
 	for _, line := range lines {
-		if line != "" {
-			aliases[index] = parseBranchListLine(line)
-			index += 1
+		alias := parseBranchListLine(line)
+		if alias.Branch != "" && alias.Revision != Revision("") {
+			aliases = append(aliases, alias)
 		}
 	}
 	return aliases
