@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type GitRepository struct {}
+type GitRepository struct{}
 
 func parseBranchListLine(line string) Alias {
 	line = strings.Trim(line, "* ")
