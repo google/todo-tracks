@@ -19,28 +19,20 @@ func runGitCommandOrDie(cmd *exec.Cmd) string {
 	return strings.Trim(string(out), " \n")
 }
 
-func parseBranchListLine(line string) Alias {
-	line = strings.Trim(line, "* ")
-	splitLine := strings.Split(line, " ")
-	masterName := splitLine[0]
-	for _, lineComponent := range splitLine[1:] {
-		if len(lineComponent) == 40 {
-			revisionHash := lineComponent
-			return Alias{masterName, Revision(revisionHash)}
-		}
-	}
-	return Alias{Branch: masterName}
-}
-
 func (gitRepository GitRepository) ListBranches() []Alias {
 	out := runGitCommandOrDie(
 		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
 	lines := strings.Split(out, "\n")
 	aliases := make([]Alias, 0)
 	for _, line := range lines {
-		alias := parseBranchListLine(line)
-		if alias.Branch != "" && alias.Revision != Revision("") {
-			aliases = append(aliases, alias)
+		line = strings.Trim(line, "* ")
+		splitLine := strings.Split(line, " ")
+		masterName := splitLine[0]
+		for _, lineComponent := range splitLine[1:] {
+			if len(lineComponent) == 40 {
+				revisionHash := lineComponent
+				aliases = append(aliases, Alias{masterName, Revision(revisionHash)})
+			}
 		}
 	}
 	return aliases
