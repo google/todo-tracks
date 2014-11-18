@@ -8,8 +8,9 @@ import (
 )
 
 // TODO: Split this off into some sort of model package
-type Revision struct {
-	Hash string
+type Revision string
+type RevisionContents struct {
+	Revision Revision
 	Paths []string
 }
 
@@ -18,16 +19,16 @@ type Alias struct {
 	Revision Revision
 }
 
-func (alias *Alias) PrintVerbose() {
-	fmt.Printf("Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, alias.Revision.Hash)
-	for _, path := range alias.Revision.Paths {
+func (alias Alias) PrintVerbose() {
+	fmt.Printf("Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
+	for _, path := range alias.Revision.Load().Paths {
 		fmt.Printf("\tPath: \"%s\"\n", path)
 	}
 }
 
 // TODO: Create a package that wraps all of the calls to git commands
-func loadRevision(hash string) Revision {
-	out, err := exec.Command("git", "ls-tree", "-r", hash).Output()
+func (revision Revision) Load() *RevisionContents {
+	out, err := exec.Command("git", "ls-tree", "-r", string(revision)).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,7 +40,7 @@ func loadRevision(hash string) Revision {
 		lineParts := strings.Split(line, " ")
 		paths[index] = lineParts[len(lineParts) - 1]
 	}
-	return Revision{hash, paths}
+	return &RevisionContents{revision, paths}
 }
 
 func parseBranchListLine(line string) Alias {
@@ -49,7 +50,7 @@ func parseBranchListLine(line string) Alias {
 	for _, lineComponent := range splitLine[1:] {
 		if len(lineComponent) == 40 {
 			revisionHash := lineComponent
-			return Alias{masterName, loadRevision(revisionHash)}
+			return Alias{masterName, Revision(revisionHash)}
 		}
 	}
 	return Alias{Branch: masterName}
