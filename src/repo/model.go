@@ -21,6 +21,7 @@ type Alias struct {
 
 type Line struct {
 	Revision   Revision
+	FileName   string
 	LineNumber int
 	Contents   string
 }

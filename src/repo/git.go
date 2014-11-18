@@ -19,6 +19,16 @@ func runGitCommandOrDie(cmd *exec.Cmd) string {
 	return strings.Trim(string(out), " \n")
 }
 
+func splitCommandOutputLine(line string) []string {
+	lineParts := make([]string, 0)
+	for _, part := range strings.Split(line, " ") {
+		if part != "" {
+			lineParts = append(lineParts, part)
+		}
+	}
+	return lineParts
+}
+
 func (gitRepository GitRepository) ListBranches() []Alias {
 	out := runGitCommandOrDie(
 		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
@@ -26,13 +36,11 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 	aliases := make([]Alias, 0)
 	for _, line := range lines {
 		line = strings.Trim(line, "* ")
-		splitLine := strings.Split(line, " ")
-		masterName := splitLine[0]
-		for _, lineComponent := range splitLine[1:] {
-			if len(lineComponent) == 40 {
-				revisionHash := lineComponent
-				aliases = append(aliases, Alias{masterName, Revision(revisionHash)})
-			}
+		lineParts := splitCommandOutputLine(line)
+		if len(lineParts) >= 2 && len(lineParts[1]) == 40 {
+			branch := lineParts[0]
+			revision := Revision(lineParts[1])
+			aliases = append(aliases, Alias{branch, revision})
 		}
 	}
 	return aliases
@@ -44,7 +52,7 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 	paths := make([]string, len(lines))
 	for index, line := range lines {
 		line = strings.Replace(lines[index], "\t", " ", -1)
-		lineParts := strings.Split(line, " ")
+		lineParts := splitCommandOutputLine(line)
 		paths[index] = lineParts[len(lineParts)-1]
 	}
 	return &RevisionContents{revision, paths}
@@ -87,19 +95,21 @@ func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) Revis
 
 func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path string) []Line {
 	out := runGitCommandOrDie(
-		exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), "--", path))
+		exec.Command("git", "blame", "-sfn", "--abbrev=40", string(revision), "--", path))
 	lines := strings.Split(out, "\n")
 	result := make([]Line, len(lines))
 	for _, line := range lines {
-		revision := Revision(line[0:40])
 		lineNumberIndex := strings.Index(line, ")")
-		lineNumber, err := strconv.Atoi(strings.Trim(line[41:lineNumberIndex], " "))
-		if err != nil {
-			log.Fatal(err)
-		}
-		contents := line[lineNumberIndex+1:]
-		if contents != "" {
-			result = append(result, Line{revision, lineNumber, contents})
+		lineParts := splitCommandOutputLine(line)
+		if lineNumberIndex > 0 && len(lineParts) > 3 {
+			revision := Revision(lineParts[0])
+			fileName := lineParts[1]
+			lineNumber, err := strconv.Atoi(lineParts[2])
+			if err != nil {
+				log.Fatal(err)
+			}
+			contents := line[lineNumberIndex+1:]
+			result = append(result, Line{revision, fileName, lineNumber, contents})
 		}
 	}
 	return result
