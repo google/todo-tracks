@@ -41,7 +41,7 @@ func (alias Alias) PrintVerbose(w io.Writer) {
 	fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
 	fmt.Fprintf(w, "<ul>\n")
 	for _, todoLine := range alias.Revision.LoadTodos() {
-		fmt.Fprintf(w, "<li>TODO: \"%s\"</li>\n", todoLine.Contents)
+		fmt.Fprintf(w, "<li>\"%s\"</li>\n", todoLine.Contents)
 	}
 	fmt.Fprintf(w, "</ul>\n")
 }
