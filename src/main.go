@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -35,11 +37,13 @@ type Line struct {
 	Contents   string
 }
 
-func (alias Alias) PrintVerbose() {
-	fmt.Printf("Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
+func (alias Alias) PrintVerbose(w io.Writer) {
+	fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
+	fmt.Fprintf(w, "<ul>\n")
 	for _, todoLine := range alias.Revision.LoadTodos() {
-		fmt.Printf("\tTODO: \"%s\"\n", todoLine.Contents)
+		fmt.Fprintf(w, "<li>TODO: \"%s\"</li>\n", todoLine.Contents)
 	}
+	fmt.Fprintf(w, "</ul>\n")
 }
 
 func (revision Revision) getSubject() string {
@@ -119,7 +123,7 @@ func parseBranchListLine(line string) Alias {
 }
 
 func ListBranches() []Alias {
-	out, err := exec.Command("git", "branch", "-av", "--list", "--abbrev=40").Output()
+	out, err := exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -173,9 +177,15 @@ func (revision *Revision) LoadTodos() []Line {
 	return todos
 }
 
-// TODO: Serve a webpage instead of printing to stdout
-func main() {
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "<body>")
 	for _, alias := range ListBranches() {
-		alias.PrintVerbose()
+		alias.PrintVerbose(w)
 	}
+	fmt.Fprintf(w, "</body>")
+}
+
+func main() {
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":8080", nil)
 }
