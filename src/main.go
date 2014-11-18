@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"regexp"
 	"repo"
@@ -32,7 +33,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			alias.Branch, string(alias.Revision))
 		fmt.Fprintf(w, "<ul>\n")
 		for _, todoLine := range LoadTodos(gitRepository, alias.Revision) {
-			fmt.Fprintf(w, "<li>\"%s\"</li>\n", todoLine.Contents)
+			fmt.Fprintf(w, "<li>\"%s\"</li>\n", html.EscapeString(todoLine.Contents))
 		}
 		fmt.Fprintf(w, "</ul>\n")
 	}
