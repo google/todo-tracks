@@ -16,6 +16,14 @@ type RevisionContents struct {
 	Paths []string
 }
 
+type RevisionMetadata struct {
+	Revision Revision
+	Timestamp int64
+	Subject string
+	AuthorName string
+	AuthorEmail string
+}
+
 type Alias struct {
 	Branch string
 	Revision Revision
@@ -31,6 +39,52 @@ func (alias Alias) PrintVerbose() {
 	fmt.Printf("Branch: \"%s\",\tRevision: \"%s\"\n", alias.Branch, string(alias.Revision))
 	for _, path := range alias.Revision.Load().Paths {
 		fmt.Printf("\tPath: \"%s\"\n", path)
+	}
+}
+
+func (revision Revision) getSubject() string {
+	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%s\"", "-s").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(out)
+}
+
+func (revision Revision) getAuthorName() string {
+	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%an\"", "-s").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(out)
+}
+
+func (revision Revision) getAuthorEmail() string {
+	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%ae\"", "-s").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(out)
+}
+
+func (revision Revision) getTimestamp() int64 {
+	out, err := exec.Command("git", "show", string(revision), "--format=\"format:%ae\"", "-s").Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	timestamp, err := strconv.ParseInt(string(out), 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return timestamp
+}
+
+func (revision Revision) GetMetadata() *RevisionMetadata {
+	return &RevisionMetadata{
+		Revision: revision,
+		Timestamp: revision.getTimestamp(),
+		Subject: revision.getSubject(),
+		AuthorName: revision.getAuthorName(),
+		AuthorEmail: revision.getAuthorEmail(),
 	}
 }
 
