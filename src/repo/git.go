@@ -96,7 +96,7 @@ func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) Revis
 
 func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path string) []Line {
 	out := runGitCommandOrDie(
-		exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), path))
+		exec.Command("git", "blame", "-s", "--abbrev=40", string(revision), "--", path))
 	lines := strings.Split(out, "\n")
 	result := make([]Line, len(lines))
 	for _, line := range lines {
@@ -106,8 +106,10 @@ func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path st
 		if err != nil {
 			log.Fatal(err)
 		}
-		contents := line[lineNumberIndex+2:]
-		result = append(result, Line{revision, lineNumber, contents})
+		contents := line[lineNumberIndex+1:]
+		if contents != "" {
+			result = append(result, Line{revision, lineNumber, contents})
+		}
 	}
 	return result
 }
