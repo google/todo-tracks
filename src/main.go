@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html"
-	"log"
 	"net/http"
 	"repo"
 )
@@ -13,18 +12,23 @@ func serveRepoDetails(repository repo.Repository) {
 		func(w http.ResponseWriter, r *http.Request) {
 			err := repo.WriteJson(w, repository)
 			if err != nil {
-				log.Fatal(err)
+				w.WriteHeader(500)
+				fmt.Fprintf(w, "Server error \"%s\"", err)
 			}
 		})
 	http.HandleFunc("/revision",
 		func(w http.ResponseWriter, r *http.Request) {
 			revisionParam := r.URL.Query().Get("id")
-			if revisionParam != "" {
-				revision := repo.Revision(revisionParam)
-				err := repo.WriteTodosJson(w, repository, revision)
-				if err != nil {
-					log.Fatal(err)
-				}
+			if revisionParam == "" {
+				w.WriteHeader(400)
+				fmt.Fprint(w, "Missing required parameter 'id'")
+				return
+			}
+			revision := repo.Revision(revisionParam)
+			err := repo.WriteTodosJson(w, repository, revision)
+			if err != nil {
+				w.WriteHeader(500)
+				fmt.Fprintf(w, "Server error \"%s\"", err)
 			}
 		})
 	http.HandleFunc("/",
