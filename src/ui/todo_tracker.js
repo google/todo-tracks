@@ -9,8 +9,6 @@ todoTrackerApp.controller("listBranches", function($scope,$http) {
 });
 
 function processBranchListResponse(response) {
-  // alert("response = " + response);
-  // var branchesStrObj = JSON.parse(response);
   var branchesStrObj = response;
   var reposRaw = {};
 
@@ -58,3 +56,10 @@ function processBranchListResponse(response) {
   console.log("final repos = " + JSON.stringify(repos));
   return repos;
 }
+
+/*
+todoTrackerApp.controller("viewBranch", function($scope,$http) {
+  $http.get(window.location.protocol + "//" + window.location.host + "/aliases")
+    .success(function(response) {$scope.repositories = processBranchListResponse(response);});
+});
+*/
