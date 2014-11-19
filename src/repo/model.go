@@ -62,11 +62,6 @@ func WriteJson(w io.Writer, repository Repository) error {
 	return nil
 }
 
-const (
-	// TODO: Make this configurable.
-	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
-)
-
 func LoadTodos(repository Repository, revision Revision, todoRegex string) []Line {
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
