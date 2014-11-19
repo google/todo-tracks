@@ -60,22 +60,22 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 
 func (gitRepository GitRepository) getSubject(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%s\"", "-s"))
+		"git", "show", string(revision), "--format=%s", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorName(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%an\"", "-s"))
+		"git", "show", string(revision), "--format=%an", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorEmail(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%ae\"", "-s"))
+		"git", "show", string(revision), "--format=%ae", "-s"))
 }
 
 func (gitRepository GitRepository) getTimestamp(revision Revision) int64 {
 	out := runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%t\"", "-s"))
+		"git", "show", string(revision), "--format=%ct", "-s"))
 	timestamp, err := strconv.ParseInt(out, 10, 64)
 	if err != nil {
 		log.Fatal(err)
