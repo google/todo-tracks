@@ -32,6 +32,19 @@ type Line struct {
 	Contents   string
 }
 
+// Key that uniquely identifies a TODO.
+type TodoId struct {
+	Revision   Revision
+	FileName   string
+	LineNumber int
+}
+
+type TodoDetails struct {
+	Id               TodoId
+	RevisionMetadata RevisionMetadata
+	Context          string
+}
+
 type Repository interface {
 	ListBranches() []Alias
 	ReadRevisionContents(revision Revision) *RevisionContents
@@ -49,9 +62,11 @@ func WriteJson(w io.Writer, repository Repository) error {
 }
 
 const (
+	// TODO: Make this configurable.
 	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
 )
 
+// TODO: Return a slice of TodoId instead of Line.
 func LoadTodos(repository Repository, revision Revision) []Line {
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
@@ -73,3 +88,5 @@ func WriteTodosJson(w io.Writer, repository Repository, revision Revision) error
 	w.Write(bytes)
 	return nil
 }
+
+// TODO: Add a method for getting a JSON blob of the TodoDetails given a TodoId.
