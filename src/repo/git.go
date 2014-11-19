@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"bytes"
 	"log"
 	"os/exec"
 	"strconv"
@@ -113,4 +114,36 @@ func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path st
 		}
 	}
 	return result
+}
+
+func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path string) string {
+	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, path) {
+			lineParts := strings.Split(strings.Replace(line, "\t", " ", -1), " ")
+			return lineParts[2]
+		}
+	}
+	log.Fatal("Failed to lookup blob hash for " + path)
+	return ""
+}
+
+func (gitRepository GitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
+	blob := gitRepository.getFileBlobOrDie(revision, path)
+	out := runGitCommandOrDie(exec.Command("git", "show", blob))
+	lines := strings.Split(out, "\n")
+	if startLine < 0 {
+		startLine = 0
+	}
+	if endLine > len(lines) {
+		endLine = len(lines)
+	}
+	lines = lines[startLine:endLine]
+	var buffer bytes.Buffer
+	for _, line := range lines {
+		buffer.WriteString(line)
+		buffer.WriteString("\n")
+	}
+	return buffer.String()
 }

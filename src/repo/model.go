@@ -50,6 +50,7 @@ type Repository interface {
 	ReadRevisionContents(revision Revision) *RevisionContents
 	ReadRevisionMetadata(revision Revision) RevisionMetadata
 	ReadFileAtRevision(revision Revision, path string) []Line
+	ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
@@ -80,19 +81,9 @@ func LoadTodos(repository Repository, revision Revision) []Line {
 }
 
 func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, linesAfter int) *TodoDetails {
-	lines := repository.ReadFileAtRevision(todoId.Revision, todoId.FileName)
 	startLine := todoId.LineNumber - linesBefore
 	endLine := todoId.LineNumber + linesAfter + 1
-	if startLine < 0 {
-		startLine = 0
-	}
-	if endLine > len(lines) {
-		endLine = len(lines)
-	}
-	context := ""
-	for _, line := range lines[startLine:endLine] {
-		context += line.Contents + "\n"
-	}
+	context := repository.ReadFileSnippetAtRevision(todoId.Revision, todoId.FileName, startLine, endLine)
 	return &TodoDetails{
 		Id:               todoId,
 		RevisionMetadata: repository.ReadRevisionMetadata(todoId.Revision),
