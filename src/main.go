@@ -1,12 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html"
 	"net/http"
 	"repo"
 	"strconv"
 )
+
+var port int
+
+func init() {
+	flag.IntVar(&port, "port", 8080, "Port on which to start the server")
+}
 
 func serveRepoDetails(repository repo.Repository) {
 	http.HandleFunc("/aliases",
@@ -74,11 +81,11 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "</body>")
 			}
 		})
-	// TODO: Make the port number an optional command line flag.
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func main() {
-	gitRepository := repo.GitRepository{}
+	flag.Parse()
+	var gitRepository repo.GitRepository
 	serveRepoDetails(gitRepository)
 }
