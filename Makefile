@@ -1,8 +1,14 @@
-build:	fmt
+build:	resource-constants
 	GOPATH=$(shell pwd) go build -o bin/todos src/main.go
+	rm src/resources.go
+
+#TODO: Add a tests rule.
+resource-constants: fmt
+	go build -o bin/resource-constants utils/resource-constants.go
+	bin/resource-constants --base_dir $(shell pwd) > src/resources.go
 
 fmt:
 	gofmt -w `find ./ -name '*.go'`
 
-#TODO: Add a rule for embedding our HTML/Javascript files in Go constants.
-#TODO: Add a tests rule.
+clean:
+	rm -r bin
