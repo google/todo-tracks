@@ -37,7 +37,7 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 	aliases := make([]Alias, 0)
 	for _, line := range lines {
 		line = strings.Trim(line, "* ")
-		lineParts := splitCommandOutputLine(line)
+		lineParts := strings.SplitN(line, " ", 3)
 		if len(lineParts) >= 2 && len(lineParts[1]) == 40 {
 			branch := lineParts[0]
 			revision := Revision(lineParts[1])
@@ -53,7 +53,7 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 	paths := make([]string, len(lines))
 	for index, line := range lines {
 		line = strings.Replace(lines[index], "\t", " ", -1)
-		lineParts := splitCommandOutputLine(line)
+		lineParts := strings.SplitN(line, " ", 4)
 		paths[index] = lineParts[len(lineParts)-1]
 	}
 	return &RevisionContents{revision, paths}
