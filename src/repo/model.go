@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"regexp"
+	"strings"
 )
 
 type Revision string
@@ -62,18 +63,15 @@ func WriteJson(w io.Writer, repository Repository) error {
 	return nil
 }
 
-const (
-	// TODO: Make this configurable.
-	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
-)
-
-func LoadTodos(repository Repository, revision Revision) []Line {
+func LoadTodos(repository Repository, revision Revision, todoRegex, excludePaths string) []Line {
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
-		for _, line := range repository.ReadFileAtRevision(revision, path) {
-			matched, err := regexp.MatchString(TodoRegex, line.Contents)
-			if err == nil && matched {
-				todos = append(todos, line)
+		if !strings.Contains(excludePaths, path) {
+			for _, line := range repository.ReadFileAtRevision(revision, path) {
+				matched, err := regexp.MatchString(todoRegex, line.Contents)
+				if err == nil && matched {
+					todos = append(todos, line)
+				}
 			}
 		}
 	}
@@ -91,8 +89,8 @@ func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, line
 	}
 }
 
-func WriteTodosJson(w io.Writer, repository Repository, revision Revision) error {
-	bytes, err := json.Marshal(LoadTodos(repository, revision))
+func WriteTodosJson(w io.Writer, repository Repository, revision Revision, todoRegex, excludePaths string) error {
+	bytes, err := json.Marshal(LoadTodos(repository, revision, todoRegex, excludePaths))
 	if err != nil {
 		return err
 	}
