@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"bytes"
 	"log"
 	"os/exec"
 	"strconv"
@@ -60,22 +61,22 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 
 func (gitRepository GitRepository) getSubject(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%s\"", "-s"))
+		"git", "show", string(revision), "--format=%s", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorName(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%an\"", "-s"))
+		"git", "show", string(revision), "--format=%an", "-s"))
 }
 
 func (gitRepository GitRepository) getAuthorEmail(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%ae\"", "-s"))
+		"git", "show", string(revision), "--format=%ae", "-s"))
 }
 
 func (gitRepository GitRepository) getTimestamp(revision Revision) int64 {
 	out := runGitCommandOrDie(exec.Command(
-		"git", "show", string(revision), "--format=\"format:%t\"", "-s"))
+		"git", "show", string(revision), "--format=%ct", "-s"))
 	timestamp, err := strconv.ParseInt(out, 10, 64)
 	if err != nil {
 		log.Fatal(err)
@@ -113,4 +114,36 @@ func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path st
 		}
 	}
 	return result
+}
+
+func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path string) string {
+	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, path) {
+			lineParts := strings.Split(strings.Replace(line, "\t", " ", -1), " ")
+			return lineParts[2]
+		}
+	}
+	log.Fatal("Failed to lookup blob hash for " + path)
+	return ""
+}
+
+func (gitRepository GitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
+	blob := gitRepository.getFileBlobOrDie(revision, path)
+	out := runGitCommandOrDie(exec.Command("git", "show", blob))
+	lines := strings.Split(out, "\n")
+	if startLine < 0 {
+		startLine = 0
+	}
+	if endLine > len(lines) {
+		endLine = len(lines)
+	}
+	lines = lines[startLine:endLine]
+	var buffer bytes.Buffer
+	for _, line := range lines {
+		buffer.WriteString(line)
+		buffer.WriteString("\n")
+	}
+	return buffer.String()
 }

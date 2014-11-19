@@ -1,11 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html"
 	"net/http"
 	"repo"
+	"strconv"
 )
+
+var port int
+
+func init() {
+	flag.IntVar(&port, "port", 8080, "Port on which to start the server")
+}
 
 func serveRepoDetails(repository repo.Repository) {
 	http.HandleFunc("/aliases",
@@ -31,6 +39,30 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "Server error \"%s\"", err)
 			}
 		})
+	http.HandleFunc("/todo",
+		func(w http.ResponseWriter, r *http.Request) {
+			revisionParam := r.URL.Query().Get("revision")
+			lineNumberParam := r.URL.Query().Get("lineNumber")
+			fileName := r.URL.Query().Get("fileName")
+			if revisionParam == "" || fileName == "" || lineNumberParam == "" {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "Missing at least one required parameter")
+				return
+			}
+			revision := repo.Revision(revisionParam)
+			lineNumber, err := strconv.Atoi(lineNumberParam)
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
+				return
+			}
+			todoId := repo.TodoId{
+				Revision:   revision,
+				FileName:   fileName,
+				LineNumber: lineNumber,
+			}
+			repo.WriteTodoDetailsJson(w, repository, todoId)
+		})
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "<body>")
@@ -49,10 +81,11 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "</body>")
 			}
 		})
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func main() {
-	gitRepository := repo.GitRepository{}
+	flag.Parse()
+	var gitRepository repo.GitRepository
 	serveRepoDetails(gitRepository)
 }
