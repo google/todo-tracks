@@ -3,48 +3,52 @@ package main
 import (
 	"fmt"
 	"html"
+	"log"
 	"net/http"
-	"regexp"
 	"repo"
 )
 
-const (
-	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
-)
-
-func LoadTodos(repository repo.Repository, revision repo.Revision) []repo.Line {
-	todos := make([]repo.Line, 0)
-	for _, path := range repository.ReadRevisionContents(revision).Paths {
-		for _, line := range repository.ReadFileAtRevision(revision, path) {
-			matched, err := regexp.MatchString(TodoRegex, line.Contents)
-			if err == nil && matched {
-				todos = append(todos, line)
+func serveRepoDetails(repository repo.Repository) {
+	http.HandleFunc("/aliases",
+		func(w http.ResponseWriter, r *http.Request) {
+			err := repo.WriteJson(w, repository)
+			if err != nil {
+				log.Fatal(err)
 			}
-		}
-	}
-	return todos
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<body>")
-	gitRepository := repo.GitRepository{}
-	for _, alias := range gitRepository.ListBranches() {
-		fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n",
-			alias.Branch, string(alias.Revision))
-		fmt.Fprintf(w, "<ul>\n")
-		for _, todoLine := range LoadTodos(gitRepository, alias.Revision) {
-			fmt.Fprintf(w,
-				"<li>%s[%d]: \"%s\"</li>\n",
-				todoLine.FileName,
-				todoLine.LineNumber,
-				html.EscapeString(todoLine.Contents))
-		}
-		fmt.Fprintf(w, "</ul>\n")
-	}
-	fmt.Fprintf(w, "</body>")
+		})
+	http.HandleFunc("/revision",
+		func(w http.ResponseWriter, r *http.Request) {
+			revisionParam := r.URL.Query().Get("id")
+			if revisionParam != "" {
+				revision := repo.Revision(revisionParam)
+				err := repo.WriteTodosJson(w, repository, revision)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		})
+	http.HandleFunc("/",
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "<body>")
+			for _, alias := range repository.ListBranches() {
+				fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n",
+					alias.Branch, string(alias.Revision))
+				fmt.Fprintf(w, "<ul>\n")
+				for _, todoLine := range repo.LoadTodos(repository, alias.Revision) {
+					fmt.Fprintf(w,
+						"<li>%s[%d]: \"%s\"</li>\n",
+						todoLine.FileName,
+						todoLine.LineNumber,
+						html.EscapeString(todoLine.Contents))
+				}
+				fmt.Fprintf(w, "</ul>\n")
+				fmt.Fprintf(w, "</body>")
+			}
+		})
+	http.ListenAndServe(":8080", nil)
 }
 
 func main() {
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	gitRepository := repo.GitRepository{}
+	serveRepoDetails(gitRepository)
 }
