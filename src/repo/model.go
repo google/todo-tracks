@@ -66,7 +66,6 @@ const (
 	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
 )
 
-// TODO: Return a slice of TodoId instead of Line.
 func LoadTodos(repository Repository, revision Revision) []Line {
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
@@ -80,6 +79,27 @@ func LoadTodos(repository Repository, revision Revision) []Line {
 	return todos
 }
 
+func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, linesAfter int) *TodoDetails {
+	lines := repository.ReadFileAtRevision(todoId.Revision, todoId.FileName)
+	startLine := todoId.LineNumber - linesBefore
+	endLine := todoId.LineNumber + linesAfter + 1
+	if startLine < 0 {
+		startLine = 0
+	}
+	if endLine > len(lines) {
+		endLine = len(lines)
+	}
+	context := ""
+	for _, line := range lines[startLine:endLine] {
+		context += line.Contents + "\n"
+	}
+	return &TodoDetails{
+		Id:               todoId,
+		RevisionMetadata: repository.ReadRevisionMetadata(todoId.Revision),
+		Context:          context,
+	}
+}
+
 func WriteTodosJson(w io.Writer, repository Repository, revision Revision) error {
 	bytes, err := json.Marshal(LoadTodos(repository, revision))
 	if err != nil {
@@ -89,4 +109,12 @@ func WriteTodosJson(w io.Writer, repository Repository, revision Revision) error
 	return nil
 }
 
-// TODO: Add a method for getting a JSON blob of the TodoDetails given a TodoId.
+func WriteTodoDetailsJson(w io.Writer, repository Repository, todoId TodoId) error {
+	// TODO: Make the lines before and after a parameter.
+	bytes, err := json.Marshal(LoadTodoDetails(repository, todoId, 5, 5))
+	if err != nil {
+		return err
+	}
+	w.Write(bytes)
+	return nil
+}
