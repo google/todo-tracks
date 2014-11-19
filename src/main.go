@@ -31,6 +31,7 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "Server error \"%s\"", err)
 			}
 		})
+	// TODO: Add a handler for getting the JSON blob for a specific TODO.
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "<body>")
@@ -49,6 +50,7 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "</body>")
 			}
 		})
+	// TODO: Make the port number an optional command line flag.
 	http.ListenAndServe(":8080", nil)
 }
 
