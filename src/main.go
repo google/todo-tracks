@@ -10,9 +10,15 @@ import (
 )
 
 var port int
+var todoRegex string
 
 func init() {
 	flag.IntVar(&port, "port", 8080, "Port on which to start the server")
+	flag.StringVar(
+		&todoRegex,
+		"todo_regex",
+		"[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]",
+		"Regular expression (using the re2 syntax) to use when matching TODOs")
 }
 
 func serveRepoDetails(repository repo.Repository) {
@@ -33,7 +39,7 @@ func serveRepoDetails(repository repo.Repository) {
 				return
 			}
 			revision := repo.Revision(revisionParam)
-			err := repo.WriteTodosJson(w, repository, revision)
+			err := repo.WriteTodosJson(w, repository, revision, todoRegex)
 			if err != nil {
 				w.WriteHeader(500)
 				fmt.Fprintf(w, "Server error \"%s\"", err)
@@ -70,7 +76,7 @@ func serveRepoDetails(repository repo.Repository) {
 				fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n",
 					alias.Branch, string(alias.Revision))
 				fmt.Fprintf(w, "<ul>\n")
-				for _, todoLine := range repo.LoadTodos(repository, alias.Revision) {
+				for _, todoLine := range repo.LoadTodos(repository, alias.Revision, todoRegex) {
 					fmt.Fprintf(w,
 						"<li>%s[%d]: \"%s\"</li>\n",
 						todoLine.FileName,

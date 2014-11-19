@@ -67,11 +67,11 @@ const (
 	TodoRegex = "[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]"
 )
 
-func LoadTodos(repository Repository, revision Revision) []Line {
+func LoadTodos(repository Repository, revision Revision, todoRegex string) []Line {
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
 		for _, line := range repository.ReadFileAtRevision(revision, path) {
-			matched, err := regexp.MatchString(TodoRegex, line.Contents)
+			matched, err := regexp.MatchString(todoRegex, line.Contents)
 			if err == nil && matched {
 				todos = append(todos, line)
 			}
@@ -91,8 +91,8 @@ func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, line
 	}
 }
 
-func WriteTodosJson(w io.Writer, repository Repository, revision Revision) error {
-	bytes, err := json.Marshal(LoadTodos(repository, revision))
+func WriteTodosJson(w io.Writer, repository Repository, revision Revision, todoRegex string) error {
+	bytes, err := json.Marshal(LoadTodos(repository, revision, todoRegex))
 	if err != nil {
 		return err
 	}
