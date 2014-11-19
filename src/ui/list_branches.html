@@ -35,7 +35,7 @@
         <b>Repository:</b>
       </div>
       <div class="col-md-11">
-        {{repo.Repository}}
+        {{repo.repository}}
       </div>
     </div>
 
@@ -55,15 +55,17 @@
           </div>
         </div>
         <!-- List each branch -->
-        <div class="row alternate_row" ng-repeat="branch in repo.Branches">
+        <div class="row alternate_row" ng-repeat="branch in repo.branches">
           <div class="col-md-3">
-            <a href="xxxx">{{branch.Branch}}</a>
+            <a href="xxxx">{{branch.branch}}</a>
           </div>
           <div class="col-md-4">
-            {{branch.Revision}}
+            {{branch.revision}}
           </div>
           <div class="col-md-5">
-            {{branch.LastModified}} by {{branch.LastModifiedBy}}
+            <div ng-show="branch.lastModified == null || branche.lastModified == ''">
+              {{branch.lastModified}} by {{branch.lastModifiedBy}}
+            </div>
           </div>
         </div>
       </div>
