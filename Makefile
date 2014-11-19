@@ -1,6 +1,5 @@
-build:	resource-constants
+build:	fmt
 	GOPATH=$(shell pwd) go build -o bin/todos src/main.go
-	rm src/resources.go
 
 #TODO: Add a tests rule.
 resource-constants: fmt
@@ -11,4 +10,5 @@ fmt:
 	gofmt -w `find ./ -name '*.go'`
 
 clean:
-	rm -r bin
+	rm -r bin || true
+	rm src/resources.go || true
