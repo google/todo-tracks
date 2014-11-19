@@ -1,17 +1,11 @@
 /**
  * @fileoverview Description of this file.
  */
-var todoTrackerApp = angular.module("todoTrackerApp", []);
-todoTrackerApp.controller("listBranches", function($scope) {
-  $scope.repositories = [
-    {repo_name:'local',
-      branches:[
-        {branch_name:'master',last_modified:'Nov 10 by Wei',link:'xx'},
-        {branch_name:'weizheng-dev',last_modified:'Nov 10 by Wei',link:'xx'},
-        {branch_name:'ojarjur-dev',last_modified:'Nov 10 by Wei',link:'xx'}]},
-    {repo_name:'remote',
-      branches:[
-        {branch_name:'master_on_remote',last_modified:'Nov 10 by Wei',link:'xx'},
-        {branch_name:'weizheng-dev_on_remote',last_modified:'Nov 10 by Wei',link:'xx'},
-        {branch_name:'ojarjur-dev_on_remote',last_modified:'Nov 10 by Wei',link:'xx'}]}];
+var todoTrackerApp=angular.module("todoTrackerApp", []);
+todoTrackerApp.controller("listBranches", function($scope,$http) {
+  alert("hello, controller");
+  $http.get("zz_list_branches_json.html")
+    .success(function(response) {$scope.repositories = response;})
+    .error(function(data,status,headers,config) {
+    alert("failed: data" + data + ", status: " + status};
 });
