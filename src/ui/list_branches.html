@@ -20,7 +20,7 @@
         <h1 class="text-center csblue">TODO Tracker</h1>
       </div>
     </div>
-    <div class="row header-bg-color" style="margin-bottom:8px">
+    <div class="row header-bar">
       <div class="col-md-12">
         <h4>List Branches</h4>
       </div>
@@ -28,7 +28,7 @@
   </div>
   <div class="container" ng-repeat="repo in repositories">
     <!-- Header to show branches -->
-    <div class="row">
+    <div class="row header-bar-lighter">
       <div class="col-md-1">
         <b>Repository:</b>
       </div>
@@ -37,19 +37,27 @@
       </div>
     </div>
 
-    <!-- List each branch -->
     <div class="row">
       <div class="col-md-1">
-        Branches:
       </div>
       <div class="col-md-11">
-        <table>
-          <tr ng-repeat="branch in repo.branches">
-            <td>
-              {{branch.branch_name}}
-            </td>
-          </tr>
-        </table>
+        <div class="row header-bar-text">
+          <div class="col-md-4">
+            <b>Branch</b>
+          </div>
+          <div class="col-md-8">
+            Last Modified
+          </div>
+        </div>
+        <!-- List each branch -->
+        <div class="row alternate_row" ng-repeat="branch in repo.branches">
+          <div class="col-md-4">
+            <a href="{{branch.link}}">{{branch.branch_name}}</a>
+          </div>
+          <div class="col-md-8">
+            {{branch.last_modified}}
+          </div>
+        </div>
       </div>
     </div>
   </div>
