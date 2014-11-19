@@ -57,9 +57,10 @@ function processBranchListResponse(response) {
   return repos;
 }
 
-/*
 todoTrackerApp.controller("viewBranch", function($scope,$http) {
-  $http.get(window.location.protocol + "//" + window.location.host + "/aliases")
+  $scope.init = function(revisionId) {
+    $scope.revisionId = revisionId;
+  }
+  $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $scope.revisionId)
     .success(function(response) {$scope.repositories = processBranchListResponse(response);});
 });
-*/
