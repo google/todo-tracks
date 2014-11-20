@@ -60,7 +60,6 @@ function processBranchListResponse(response) {
 todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
   console.log("location = " + $location + ", search = " + $location.search() + ", revid=" + $location.search()['revid']);
   console.log("location = " + JSON.stringify($location));
-  console.log("http = " + JSON.stringify($http));
 
   $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $location.search()['revid'])
     .success(function(response) {$scope.revisions= processTodoListResponse(response);});
