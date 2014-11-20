@@ -2,7 +2,6 @@ TODO Tracker
 ============
 <!--
 TODO: Add more use cases we want to support.
-TODO: this is a test, remove soon.
 -->
 TODO tracks is a tool to let users get a handle on the various TODOs they or
 their teammate have added over time. This allows people to track progress by
@@ -15,3 +14,5 @@ Use cases:
 - Examine when a TODO was added, removed, who added.
 - Hierarchy of TODOs, that is a higher level TODO was replaced with smaller
   scoped TODOs.
+
+TODO: this is a test, remove soon.
