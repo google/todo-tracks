@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"repo"
 	"resources"
 	"strconv"
@@ -44,6 +46,18 @@ func serveStaticContent(w http.ResponseWriter, resourceName string) {
 	w.Write(resourceContents)
 }
 
+func readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
+	revisionParam := r.URL.Query().Get("revision")
+	if revisionParam == "" {
+		return repo.Revision(""), "", errors.New("Missing the revision parameter")
+	}
+	fileName, err := url.QueryUnescape(r.URL.Query().Get("fileName"))
+	if err != nil || fileName == "" {
+		return repo.Revision(""), "", errors.New("Missing the fileName parameter")
+	}
+	return repo.Revision(revisionParam), fileName, nil
+}
+
 func serveRepoDetails(repository repo.Repository) {
 	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.URL.Path[4:]
@@ -74,15 +88,18 @@ func serveRepoDetails(repository repo.Repository) {
 		})
 	http.HandleFunc("/todo",
 		func(w http.ResponseWriter, r *http.Request) {
-			revisionParam := r.URL.Query().Get("revision")
-			lineNumberParam := r.URL.Query().Get("lineNumber")
-			fileName := r.URL.Query().Get("fileName")
-			if revisionParam == "" || fileName == "" || lineNumberParam == "" {
+			revision, fileName, err := readRevisionAndPathParams(r)
+			if err != nil {
 				w.WriteHeader(400)
-				fmt.Fprintf(w, "Missing at least one required parameter")
+				fmt.Fprintf(w, err.Error())
 				return
 			}
-			revision := repo.Revision(revisionParam)
+			lineNumberParam := r.URL.Query().Get("lineNumber")
+			if lineNumberParam == "" {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "Missing the lineNumber param")
+				return
+			}
 			lineNumber, err := strconv.Atoi(lineNumberParam)
 			if err != nil {
 				w.WriteHeader(400)
@@ -95,6 +112,38 @@ func serveRepoDetails(repository repo.Repository) {
 				LineNumber: lineNumber,
 			}
 			repo.WriteTodoDetailsJson(w, repository, todoId)
+		})
+	http.HandleFunc("/browse",
+		func(w http.ResponseWriter, r *http.Request) {
+			revision, fileName, err := readRevisionAndPathParams(r)
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, err.Error())
+				return
+			}
+			lineNumberParam := r.URL.Query().Get("lineNumber")
+			if lineNumberParam == "" {
+				lineNumberParam = "1"
+			}
+			lineNumber, err := strconv.Atoi(lineNumberParam)
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
+				return
+			}
+			http.Redirect(w, r, repository.GetBrowseUrl(
+				revision, fileName, lineNumber), http.StatusMovedPermanently)
+		})
+	http.HandleFunc("/raw",
+		func(w http.ResponseWriter, r *http.Request) {
+			revision, fileName, err := readRevisionAndPathParams(r)
+			if err != nil {
+				w.WriteHeader(400)
+				fmt.Fprintf(w, err.Error())
+				return
+			}
+			contents := repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
+			w.Write([]byte(contents))
 		})
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {

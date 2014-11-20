@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"net/url"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -214,17 +215,24 @@ func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, pa
 	blob := repository.getFileBlobOrDie(revision, path)
 	out := runGitCommandOrDie(exec.Command("git", "show", blob))
 	lines := strings.Split(out, "\n")
-	if startLine < 0 {
-		startLine = 0
+	if startLine < 1 {
+		startLine = 1
 	}
-	if endLine > len(lines) {
-		endLine = len(lines)
+	if endLine > len(lines) || endLine < 0 {
+		endLine = len(lines) + 1
 	}
-	lines = lines[startLine:endLine]
+	// Git treats lines as starting from 1, so we have to move our indices before slicing
+	startIndex := startLine - 1
+	endIndex := endLine - 1
+	lines = lines[startIndex:endIndex]
 	var buffer bytes.Buffer
 	for _, line := range lines {
 		buffer.WriteString(line)
 		buffer.WriteString("\n")
 	}
 	return buffer.String()
+}
+
+func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, lineNumber int) string {
+	return fmt.Sprintf("/raw?revision=%s&fileName=%s", string(revision), url.QueryEscape(path))
 }

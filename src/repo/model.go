@@ -51,6 +51,7 @@ type Repository interface {
 	ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string
 	LoadRevisionTodos(revision Revision, todoRegex, excludePaths string) []Line
 	LoadFileTodos(revision Revision, path string, todoRegex string) []Line
+	GetBrowseUrl(revision Revision, path string, lineNumber int) string
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
