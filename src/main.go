@@ -19,7 +19,7 @@ func init() {
 	flag.StringVar(
 		&todoRegex,
 		"todo_regex",
-		"[^[:alpha:]](t|T)(o|O)(d|D)(o|O)[^[:alpha:]]",
+		"(^|[^[:alpha:]])(t|T)(o|O)(d|D)(o|O)[^[:alpha:]]",
 		"Regular expression (using the re2 syntax) to use when matching TODOs.")
 	flag.StringVar(
 		&excludePaths,
