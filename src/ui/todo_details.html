@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
   <link rel="stylesheet" type="text/css" href="todo_tracker.css" />
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,7 +22,7 @@
         <h1 class="text-center csblue"><a href="/">TODO Tracker</a></h1>
       </div>
     </div>
-    <div class="row header-bar">
+    <div class="row header-bar" style="margin-bottom:18px">
       <div class="col-md-12">
         <h4>TODO Details</h4>
       </div>
@@ -35,8 +35,14 @@
         {{detail.key}}
       </div>
       <div class="col-md-10">
-        <a href="{{detail.link}}" ng-if="detail.hasLink">{{detail.value}}</a>
-        <span ng-if="!detail.hasLink">{{detail.value}}</span>
+        <a href="{{detail.link}}" ng-if="detail.hasLink">
+          <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
+          <span ng-if="!detail.htmlPre">{{detail.value}}</span>
+        </a>
+        <span ng-if="!detail.hasLink">
+          <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
+          <span ng-if="!detail.htmlPre">{{detail.value}}</span>
+        </span>
       </div>
     </div>
   </div>

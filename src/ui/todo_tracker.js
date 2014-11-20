@@ -127,13 +127,15 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
           detailsObj.RevisionMetadata.Timestamp + ")",
           false, ""));
     todoDetails.push(new TodoDetail("Subject", detailsObj.RevisionMetadata.Subject, false, ""));
-    todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, ""));
+    todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, "", true));
 
-    function TodoDetail(key, value, hasLink, link) {
+    function TodoDetail(key, value, hasLink, link, htmlPre) {
       this.key = key;
       this.value = value;
       this.hasLink = hasLink;
       this.link = link;
+      // use <pre></pre> on this detail field.
+      this.htmlPre = htmlPre == null ? false : htmlPre; // use <pre></pre> on this detail field.
     }
 
     function Todo(revision, fileName, lineNumber, content) {
