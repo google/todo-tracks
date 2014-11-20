@@ -10,11 +10,11 @@
   <!--
   <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.js"></script>
   -->
-  <title>TODO Tracker -- List Branches</title>
+  <title>TODO Tracker -- View Branch</title>
 </head>
 <body ng-app="todoTrackerApp">
   <!-- or "container-fluid" -->
-  <div ng-controller="listBranches">
+  <div ng-controller="listTodos">
   <div class="container">
     <div class="row">
       <div class="col-md-12">
@@ -24,18 +24,18 @@
     </div>
     <div class="row header-bar">
       <div class="col-md-12">
-        <h4>List Branches</h4>
+        <h4>List TODOs</h4>
       </div>
     </div>
   </div>
-  <div class="container" ng-repeat="repo in repositories">
+  <div class="container" ng-repeat="revision in revisions">
     <!-- Header to show branches -->
     <div class="row header-bar-lighter">
       <div class="col-md-1">
-        <b>Repository:</b>
+        <b>Revision:</b>
       </div>
       <div class="col-md-11">
-        {{repo.repository}}
+        {{revision.revision}}
       </div>
     </div>
 
@@ -44,28 +44,26 @@
       </div>
       <div class="col-md-11">
         <div class="row header-bar-text">
-          <div class="col-md-3">
-            <b>Branch</b>
-          </div>
           <div class="col-md-4">
-            Revision
+            <b>File Name</b>
           </div>
-          <div class="col-md-5">
-            Last Modified
+          <div class="col-md-2">
+           Line Number
+          </div>
+          <div class="col-md-6">
+            Content
           </div>
         </div>
         <!-- List each branch -->
-        <div class="row alternate_row" ng-repeat="branch in repo.branches">
-          <div class="col-md-3">
-            {{branch.branch}}
-          </div>
+        <div class="row alternate_row" ng-repeat="oneTodo in revision.todos">
           <div class="col-md-4">
-            <a href="list_todos.html#?revid={{branch.revision}}">{{branch.revision}}</a>
+            <a href="xxxx">{{oneTodo.fileName}}</a>
           </div>
-          <div class="col-md-5">
-            <div ng-show="branch.lastModified == null || branche.lastModified == ''">
-              {{branch.lastModified}} by {{branch.lastModifiedBy}}
-            </div>
+          <div class="col-md-2">
+            {{oneTodo.lineNumber}}
+          </div>
+          <div class="col-md-6">
+            {{oneTodo.content}}
           </div>
         </div>
       </div>
