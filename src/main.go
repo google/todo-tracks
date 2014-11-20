@@ -105,6 +105,6 @@ func serveRepoDetails(repository repo.Repository) {
 
 func main() {
 	flag.Parse()
-	var gitRepository repo.GitRepository
+	gitRepository := repo.NewGitRepository(todoRegex, excludePaths)
 	serveRepoDetails(gitRepository)
 }
