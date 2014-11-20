@@ -54,7 +54,7 @@ func loadResources(dir string, resources []Resource) []Resource {
 func main() {
 	flag.Parse()
 	fmt.Printf("package resources\n\n")
-	fmt.Printf("var Contents = map[string][]byte{\n")
+	fmt.Printf("var Constants = map[string][]byte{\n")
 	resources := make([]Resource, 0)
 	resources = loadResources(baseDir, resources)
 	for _, resource := range resources {
