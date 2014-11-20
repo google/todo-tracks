@@ -57,7 +57,7 @@
         <!-- List each TODO -->
         <div class="row alternate_row" ng-repeat="oneTodo in revision.todos">
           <div class="col-md-4">
-            <a href="xxxx">{{oneTodo.fileName}}</a>
+            <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}">{{oneTodo.fileName}}</a>
           </div>
           <div class="col-md-2">
             <a href="todo_details.html#?revid={{revision.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.lineNumber}}</a>

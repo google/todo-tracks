@@ -116,7 +116,8 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
 
     todoDetails.push(new TodoDetail("Revision", detailsObj.Id.Revision, true,
           getRevisionLink(detailsObj.Id.Revision)));
-    todoDetails.push(new TodoDetail("File Name", detailsObj.Id.FileName, true, "xxxx"));
+    todoDetails.push(new TodoDetail("File Name", detailsObj.Id.FileName, true,
+          getFileInRepoLink(detailsObj.Id.Revision, detailsObj.Id.FileName)));
     todoDetails.push(new TodoDetail("Line Number", detailsObj.Id.LineNumber, false, ""));
     todoDetails.push(new TodoDetail("Author",
           detailsObj.RevisionMetadata.AuthorName + " (" +
@@ -148,6 +149,12 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     function getRevisionLink(revision) {
       return window.location.protocol + "//" + window.location.host + "/ui/list_todos.html#?revid=" + revision;
     }
+
+    function getFileInRepoLink(revision, fileName) {
+      return window.location.protocol + "//" + window.location.host + "/browse?revision=" + revision +
+          "&fileName=" + fileName;
+    }
+
     function timestampPretty(timestamp) {
       var date = new Date(timestamp * 1000);
       return date.toString();
