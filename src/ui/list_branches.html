@@ -10,7 +10,7 @@
   <!--
   <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.js"></script>
   -->
-  <title>TODO Tracker -- Branche List</title>
+  <title>TODO Tracker -- Branch List</title>
 </head>
 <body ng-app="todoTrackerApp">
   <!-- or "container-fluid" -->
@@ -24,7 +24,7 @@
     </div>
     <div class="row header-bar">
       <div class="col-md-12">
-        <h4>Branche List</h4>
+        <h4>Branch List</h4>
       </div>
     </div>
   </div>
@@ -63,7 +63,7 @@
             <a href="list_todos.html#?revid={{branch.revision}}">{{branch.revision}}</a>
           </div>
           <div class="col-md-5">
-            <div ng-show="branch.lastModified == null || branche.lastModified == ''">
+            <div ng-show="branch.lastModified != null && branch.lastModified != ''">
               {{branch.lastModified}} by {{branch.lastModifiedBy}}
             </div>
           </div>
@@ -75,4 +75,3 @@
   <script src="todo_tracker.js"></script>
 </body>
 </html>
-
