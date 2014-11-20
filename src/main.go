@@ -28,6 +28,9 @@ func init() {
 }
 
 func serveRepoDetails(repository repo.Repository) {
+	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "src"+r.URL.Path)
+	})
 	http.HandleFunc("/aliases",
 		func(w http.ResponseWriter, r *http.Request) {
 			err := repo.WriteJson(w, repository)
