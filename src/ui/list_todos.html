@@ -44,11 +44,11 @@
       </div>
       <div class="col-md-11">
         <div class="row header-bar-text">
-          <div class="col-md-4">
+          <div class="col-md-5">
             <b>File Name</b>
           </div>
-          <div class="col-md-2">
-           Line Number
+          <div class="col-md-1">
+           Line
           </div>
           <div class="col-md-6">
             Content
@@ -56,14 +56,20 @@
         </div>
         <!-- List each TODO -->
         <div class="row alternate_row" ng-repeat="oneTodo in revision.todos">
-          <div class="col-md-4">
-            <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}">{{oneTodo.fileName}}</a>
+          <div class="col-md-5">
+            {{oneTodo.fileName}}
           </div>
-          <div class="col-md-2">
-            <a href="todo_details.html#?revid={{revision.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.lineNumber}}</a>
+          <div class="col-md-1">
+            <div class="row">
+              <div class="col-md-8 text-right">
+                <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}">{{oneTodo.lineNumber}}</a>
+              </div>
+              <div class="col-md-4">
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            {{oneTodo.content}}
+            <a href="todo_details.html#?revid={{revision.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
           </div>
         </div>
       </div>
