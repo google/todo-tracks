@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"html"
 	"net/http"
 	"repo"
 	"resources"
@@ -81,22 +80,7 @@ func serveRepoDetails(repository repo.Repository) {
 		})
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "<body>")
-			for _, alias := range repository.ListBranches() {
-				fmt.Fprintf(w, "<p>Branch: \"%s\",\tRevision: \"%s\"\n",
-					alias.Branch, string(alias.Revision))
-				fmt.Fprintf(w, "<ul>\n")
-				for _, todoLine := range repo.LoadTodos(
-					repository, alias.Revision, todoRegex, excludePaths) {
-					fmt.Fprintf(w,
-						"<li>%s[%d]: \"%s\"</li>\n",
-						todoLine.FileName,
-						todoLine.LineNumber,
-						html.EscapeString(todoLine.Contents))
-				}
-				fmt.Fprintf(w, "</ul>\n")
-				fmt.Fprintf(w, "</body>")
-			}
+			http.Redirect(w, r, "/ui/list_branches.html", http.StatusMovedPermanently)
 		})
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
