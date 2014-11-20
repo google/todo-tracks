@@ -1,4 +1,4 @@
-build:	fmt
+build:	resource-constants
 	GOPATH=$(shell pwd) go build -o bin/todos src/main.go
 
 #TODO: Add a tests rule.
