@@ -102,3 +102,56 @@ todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
     return revisionAndTodos;
   }
 });
+
+todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
+  var revision = $location.search()['revid'];
+  var fileName = $location.search()['fn'];
+  var lineNumber = $location.search()['ln'];
+  $http.get(window.location.protocol + "//" + window.location.host +
+      "/todo?revision=" + revision + "&fileName=" + fileName + "&lineNumber=" + lineNumber)
+    .success(function(response) {$scope.todoDetails = processTodoDetailsResponse(response);});
+
+  function processTodoDetailsResponse(response) {
+    var detailsObj = response;
+    var todoDetails  = [];
+
+    todoDetails.push(new TodoDetail("Revision", detailsObj.Id.Revision, true,
+          getRevisionLink(detailsObj.Id.Revision)));
+    todoDetails.push(new TodoDetail("File Name", detailsObj.Id.FileName, true, "xxxx"));
+    todoDetails.push(new TodoDetail("Line Number", detailsObj.Id.LineNumber, false, ""));
+    todoDetails.push(new TodoDetail("Author",
+          detailsObj.RevisionMetadata.AuthorName + " (" +
+          detailsObj.RevisionMetadata.AuthorEmail + ")",
+          false, ""));
+    todoDetails.push(new TodoDetail("Timestamp",
+          timestampPretty(detailsObj.RevisionMetadata.Timestamp) + " (" +
+          detailsObj.RevisionMetadata.Timestamp + ")",
+          false, ""));
+    todoDetails.push(new TodoDetail("Subject", detailsObj.RevisionMetadata.Subject, false, ""));
+    todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, ""));
+
+    function TodoDetail(key, value, hasLink, link) {
+      this.key = key;
+      this.value = value;
+      this.hasLink = hasLink;
+      this.link = link;
+    }
+
+    function Todo(revision, fileName, lineNumber, content) {
+      this.revision = revision;
+      this.fileName = fileName;
+      this.lineNumber = lineNumber;
+      this.content = content;
+    }
+
+    function getRevisionLink(revision) {
+      return window.location.protocol + "//" + window.location.host + "/ui/list_todos.html#?revid=" + revision;
+    }
+    function timestampPretty(timestamp) {
+      var date = new Date(timestamp * 1000);
+      return date.toString();
+    }
+
+    return todoDetails;
+  }
+});

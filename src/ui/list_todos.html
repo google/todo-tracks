@@ -10,7 +10,7 @@
   <!--
   <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.js"></script>
   -->
-  <title>TODO Tracker -- View Branch</title>
+  <title>TODO Tracker -- TODO List</title>
 </head>
 <body ng-app="todoTrackerApp">
   <!-- or "container-fluid" -->
@@ -24,7 +24,7 @@
     </div>
     <div class="row header-bar">
       <div class="col-md-12">
-        <h4>List TODOs</h4>
+        <h4>TODO List</h4>
       </div>
     </div>
   </div>
@@ -54,13 +54,13 @@
             Content
           </div>
         </div>
-        <!-- List each branch -->
+        <!-- List each TODO -->
         <div class="row alternate_row" ng-repeat="oneTodo in revision.todos">
           <div class="col-md-4">
             <a href="xxxx">{{oneTodo.fileName}}</a>
           </div>
           <div class="col-md-2">
-            {{oneTodo.lineNumber}}
+            <a href="todo_details.html#?revid={{revision.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.lineNumber}}</a>
           </div>
           <div class="col-md-6">
             {{oneTodo.content}}
