@@ -9,18 +9,20 @@ import (
 	"strings"
 )
 
+var resourceFileExtensions = []string{".html", ".js", ".css"}
 var baseDir string
 
 func init() {
 	flag.StringVar(&baseDir, "base_dir", "./", "Directory under which to look for resource files")
 }
 
-func isResourceFile(file os.FileInfo) bool {
-	if file.IsDir() {
-		return false
+func isResourceFileName(fileName string) bool {
+	for _, extension := range resourceFileExtensions {
+		if strings.HasSuffix(fileName, extension) {
+			return true
+		}
 	}
-	fileName := file.Name()
-	return strings.HasSuffix(fileName, ".html") || strings.HasSuffix(fileName, ".js")
+	return false
 }
 
 type Resource struct {
@@ -39,7 +41,7 @@ func loadResources(dir string, resources []Resource) []Resource {
 			resources = loadResources(fullPath, resources)
 		} else {
 			fileName := file.Name()
-			if strings.HasSuffix(fileName, ".html") || strings.HasSuffix(fileName, ".js") {
+			if isResourceFileName(fileName) {
 				bytes, err := ioutil.ReadFile(fullPath)
 				if err != nil {
 					log.Fatal(err)

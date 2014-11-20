@@ -96,22 +96,37 @@ func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) Revis
 
 func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path string) []Line {
 	out := runGitCommandOrDie(exec.Command(
-		"git", "blame", "--root", "-sfn", "--abbrev=40", string(revision), "--", path))
-	lines := strings.Split(out, "\n")
-	result := make([]Line, len(lines))
-	for _, line := range lines {
-		lineNumberIndex := strings.Index(line, ")")
-		lineParts := splitCommandOutputLine(line)
-		if lineNumberIndex > 0 && len(lineParts) > 3 {
-			revision := Revision(lineParts[0])
-			fileName := lineParts[1]
-			lineNumber, err := strconv.Atoi(lineParts[2])
-			if err != nil {
-				log.Fatal(err)
-			}
-			contents := line[lineNumberIndex+1:]
-			result = append(result, Line{revision, fileName, lineNumber, contents})
+		"git", "blame", "--root", "--line-porcelain", string(revision), "--", path))
+	result := make([]Line, 0)
+	for out != "" {
+		// First split off the next blame section
+		split := strings.SplitN(out, "\n\t", 2)
+		blame := split[0]
+		// Then split off the source line that goes with that blame section
+		split = strings.SplitN(split[1], "\n", 2)
+		contents := strings.TrimPrefix(split[0], "\t")
+		// And update the out variable to be what is left.
+		if len(split) == 2 {
+			out = split[1]
+		} else {
+			out = ""
 		}
+
+		// Finally, parse the blame section and add to the result.
+		blameParts := strings.Split(blame, "\n")
+		firstLineParts := strings.Split(blameParts[0], " ")
+		revision := Revision(firstLineParts[0])
+		lineNumber, err := strconv.Atoi(firstLineParts[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+		fileName := path
+		for _, blamePart := range blameParts[1:] {
+			if strings.HasPrefix(blamePart, "filename ") {
+				fileName = strings.SplitN(blamePart, " ", 2)[1]
+			}
+		}
+		result = append(result, Line{revision, fileName, lineNumber, contents})
 	}
 	return result
 }
