@@ -3,7 +3,6 @@ package repo
 import (
 	"encoding/json"
 	"io"
-	"regexp"
 	"strings"
 )
 
@@ -50,8 +49,8 @@ type Repository interface {
 	ListBranches() []Alias
 	ReadRevisionContents(revision Revision) *RevisionContents
 	ReadRevisionMetadata(revision Revision) RevisionMetadata
-	ReadFileAtRevision(revision Revision, path string) []Line
 	ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string
+	LoadTodos(revision Revision, path string, todoRegex string, results []Line) []Line
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
@@ -67,12 +66,7 @@ func LoadTodos(repository Repository, revision Revision, todoRegex, excludePaths
 	todos := make([]Line, 0)
 	for _, path := range repository.ReadRevisionContents(revision).Paths {
 		if !strings.Contains(excludePaths, path) {
-			for _, line := range repository.ReadFileAtRevision(revision, path) {
-				matched, err := regexp.MatchString(todoRegex, line.Contents)
-				if err == nil && matched {
-					todos = append(todos, line)
-				}
-			}
+			todos = repository.LoadTodos(revision, path, todoRegex, todos)
 		}
 	}
 	return todos
