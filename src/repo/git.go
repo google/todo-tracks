@@ -53,7 +53,7 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 	paths := make([]string, len(lines))
 	for index, line := range lines {
 		line = strings.Replace(lines[index], "\t", " ", -1)
-		lineParts := splitCommandOutputLine(line)
+		lineParts := strings.SplitN(line, " ", 4)
 		paths[index] = lineParts[len(lineParts)-1]
 	}
 	return &RevisionContents{revision, paths}

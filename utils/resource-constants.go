@@ -34,13 +34,13 @@ func loadResources(dir string, resources []Resource) []Resource {
 		log.Fatal(err)
 	}
 	for _, file := range files {
+		fullPath := fmt.Sprintf("%s%c%s", dir, os.PathSeparator, file.Name())
 		if file.IsDir() {
-			childDir := fmt.Sprintf("%s%c%s", dir, os.PathSeparator, file.Name())
-			resources = loadResources(childDir, resources)
+			resources = loadResources(fullPath, resources)
 		} else {
 			fileName := file.Name()
 			if strings.HasSuffix(fileName, ".html") || strings.HasSuffix(fileName, ".js") {
-				bytes, err := ioutil.ReadFile(file.Name())
+				bytes, err := ioutil.ReadFile(fullPath)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -54,7 +54,7 @@ func loadResources(dir string, resources []Resource) []Resource {
 func main() {
 	flag.Parse()
 	fmt.Printf("package resources\n\n")
-	fmt.Printf("var Contents = map[string][]byte{\n")
+	fmt.Printf("var Constants = map[string][]byte{\n")
 	resources := make([]Resource, 0)
 	resources = loadResources(baseDir, resources)
 	for _, resource := range resources {

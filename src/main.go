@@ -6,6 +6,7 @@ import (
 	"html"
 	"net/http"
 	"repo"
+	"resources"
 	"strconv"
 )
 
@@ -29,7 +30,7 @@ func init() {
 
 func serveRepoDetails(repository repo.Repository) {
 	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "src"+r.URL.Path)
+		w.Write(resources.Constants[r.URL.Path[4:]])
 	})
 	http.HandleFunc("/aliases",
 		func(w http.ResponseWriter, r *http.Request) {
