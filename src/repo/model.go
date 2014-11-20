@@ -3,7 +3,6 @@ package repo
 import (
 	"encoding/json"
 	"io"
-	"strings"
 )
 
 type Revision string
@@ -50,7 +49,8 @@ type Repository interface {
 	ReadRevisionContents(revision Revision) *RevisionContents
 	ReadRevisionMetadata(revision Revision) RevisionMetadata
 	ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string
-	LoadTodos(revision Revision, path string, todoRegex string, results []Line) []Line
+	LoadRevisionTodos(revision Revision, todoRegex, excludePaths string) []Line
+	LoadFileTodos(revision Revision, path string, todoRegex string) []Line
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
@@ -60,16 +60,6 @@ func WriteJson(w io.Writer, repository Repository) error {
 	}
 	w.Write(bytes)
 	return nil
-}
-
-func LoadTodos(repository Repository, revision Revision, todoRegex, excludePaths string) []Line {
-	todos := make([]Line, 0)
-	for _, path := range repository.ReadRevisionContents(revision).Paths {
-		if !strings.Contains(excludePaths, path) {
-			todos = repository.LoadTodos(revision, path, todoRegex, todos)
-		}
-	}
-	return todos
 }
 
 func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, linesAfter int) *TodoDetails {
@@ -84,7 +74,7 @@ func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, line
 }
 
 func WriteTodosJson(w io.Writer, repository Repository, revision Revision, todoRegex, excludePaths string) error {
-	bytes, err := json.Marshal(LoadTodos(repository, revision, todoRegex, excludePaths))
+	bytes, err := json.Marshal(repository.LoadRevisionTodos(revision, todoRegex, excludePaths))
 	if err != nil {
 		return err
 	}

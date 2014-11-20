@@ -10,7 +10,29 @@ import (
 	"strings"
 )
 
-type GitRepository struct{}
+type todosCacheEntry struct {
+	Present bool
+	Todos   []Line
+}
+
+type gitRepository struct {
+	BlobTodosCache     map[string]todosCacheEntry
+	RevisionTodosCache map[Revision]todosCacheEntry
+}
+
+func NewGitRepository(todoRegex, excludePaths string) Repository {
+	repository := &gitRepository{
+		BlobTodosCache:     make(map[string]todosCacheEntry),
+		RevisionTodosCache: make(map[Revision]todosCacheEntry),
+	}
+	go func() {
+		// Pre-load all of the TODOs for the current branches
+		for _, alias := range repository.ListBranches() {
+			repository.LoadRevisionTodos(alias.Revision, todoRegex, excludePaths)
+		}
+	}()
+	return repository
+}
 
 func runGitCommandOrDie(cmd *exec.Cmd) string {
 	out, err := cmd.Output()
@@ -32,7 +54,7 @@ func splitCommandOutputLine(line string) []string {
 	return lineParts
 }
 
-func (gitRepository GitRepository) ListBranches() []Alias {
+func (repository *gitRepository) ListBranches() []Alias {
 	out := runGitCommandOrDie(
 		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
 	lines := strings.Split(out, "\n")
@@ -49,7 +71,7 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 	return aliases
 }
 
-func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *RevisionContents {
+func (repository *gitRepository) ReadRevisionContents(revision Revision) *RevisionContents {
 	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
 	lines := strings.Split(out, "\n")
 	paths := make([]string, len(lines))
@@ -61,22 +83,22 @@ func (gitRepository GitRepository) ReadRevisionContents(revision Revision) *Revi
 	return &RevisionContents{revision, paths}
 }
 
-func (gitRepository GitRepository) getSubject(revision Revision) string {
+func (repository *gitRepository) getSubject(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%s", "-s"))
 }
 
-func (gitRepository GitRepository) getAuthorName(revision Revision) string {
+func (repository *gitRepository) getAuthorName(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%an", "-s"))
 }
 
-func (gitRepository GitRepository) getAuthorEmail(revision Revision) string {
+func (repository *gitRepository) getAuthorEmail(revision Revision) string {
 	return runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%ae", "-s"))
 }
 
-func (gitRepository GitRepository) getTimestamp(revision Revision) int64 {
+func (repository *gitRepository) getTimestamp(revision Revision) int64 {
 	out := runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%ct", "-s"))
 	timestamp, err := strconv.ParseInt(out, 10, 64)
@@ -86,17 +108,17 @@ func (gitRepository GitRepository) getTimestamp(revision Revision) int64 {
 	return timestamp
 }
 
-func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) RevisionMetadata {
+func (repository *gitRepository) ReadRevisionMetadata(revision Revision) RevisionMetadata {
 	return RevisionMetadata{
 		Revision:    revision,
-		Timestamp:   gitRepository.getTimestamp(revision),
-		Subject:     gitRepository.getSubject(revision),
-		AuthorName:  gitRepository.getAuthorName(revision),
-		AuthorEmail: gitRepository.getAuthorEmail(revision),
+		Timestamp:   repository.getTimestamp(revision),
+		Subject:     repository.getSubject(revision),
+		AuthorName:  repository.getAuthorName(revision),
+		AuthorEmail: repository.getAuthorEmail(revision),
 	}
 }
 
-func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path string) string {
+func (repository *gitRepository) getFileBlobOrDie(revision Revision, path string) string {
 	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
@@ -109,12 +131,8 @@ func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path stri
 	return ""
 }
 
-func (gitRepository GitRepository) readRawFileOrDie(revision Revision, path string) string {
-	blob := gitRepository.getFileBlobOrDie(revision, path)
-	return runGitCommandOrDie(exec.Command("git", "show", blob))
-}
-
-func parseBlameOutputOrDie(fileName string, out string, result []Line) []Line {
+func parseBlameOutputOrDie(fileName string, out string) []Line {
+	result := make([]Line, 0)
 	for out != "" {
 		// First split off the next blame section
 		split := strings.SplitN(out, "\n\t", 2)
@@ -147,26 +165,54 @@ func parseBlameOutputOrDie(fileName string, out string, result []Line) []Line {
 	return result
 }
 
-func (gitRepository GitRepository) LoadTodos(revision Revision, path string, todoRegex string, result []Line) []Line {
-	raw := gitRepository.readRawFileOrDie(revision, path)
-	rawLines := strings.Split(raw, "\n")
-	for lineNumber, lineContents := range rawLines {
-		matched, err := regexp.MatchString(todoRegex, lineContents)
-		if err == nil && matched {
-			// git-blame numbers lines starting from 1 rather than 0
-			gitLineNumber := lineNumber + 1
-			out := runGitCommandOrDie(exec.Command(
-				"git", "blame", "--root", "--line-porcelain",
-				"-L", fmt.Sprintf("%d,+1", gitLineNumber),
-				string(revision), "--", path))
-			result = parseBlameOutputOrDie(path, out, result)
+func (repository *gitRepository) LoadRevisionTodos(
+	revision Revision, todoRegex, excludePaths string) []Line {
+	if !repository.RevisionTodosCache[revision].Present {
+		todos := make([]Line, 0)
+		for _, path := range repository.ReadRevisionContents(revision).Paths {
+			if !strings.Contains(excludePaths, path) {
+				todos = append(todos,
+					repository.LoadFileTodos(revision, path, todoRegex)...)
+			}
+		}
+		repository.RevisionTodosCache[revision] = todosCacheEntry{
+			Present: true,
+			Todos:   todos,
 		}
 	}
-	return result
+	return repository.RevisionTodosCache[revision].Todos
 }
 
-func (gitRepository GitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
-	out := gitRepository.readRawFileOrDie(revision, path)
+func (repository *gitRepository) LoadFileTodos(
+	revision Revision, path string, todoRegex string) []Line {
+	blob := repository.getFileBlobOrDie(revision, path)
+	if !repository.BlobTodosCache[blob].Present {
+		raw := runGitCommandOrDie(exec.Command("git", "show", blob))
+		rawLines := strings.Split(raw, "\n")
+		blobTodos := make([]Line, 0)
+		for lineNumber, lineContents := range rawLines {
+			matched, err := regexp.MatchString(todoRegex, lineContents)
+			if err == nil && matched {
+				// git-blame numbers lines starting from 1 rather than 0
+				gitLineNumber := lineNumber + 1
+				out := runGitCommandOrDie(exec.Command(
+					"git", "blame", "--root", "--line-porcelain",
+					"-L", fmt.Sprintf("%d,+1", gitLineNumber),
+					string(revision), "--", path))
+				blobTodos = append(blobTodos, parseBlameOutputOrDie(path, out)...)
+			}
+		}
+		repository.BlobTodosCache[blob] = todosCacheEntry{
+			Present: true,
+			Todos:   blobTodos,
+		}
+	}
+	return repository.BlobTodosCache[blob].Todos
+}
+
+func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
+	blob := repository.getFileBlobOrDie(revision, path)
+	out := runGitCommandOrDie(exec.Command("git", "show", blob))
 	lines := strings.Split(out, "\n")
 	if startLine < 0 {
 		startLine = 0
