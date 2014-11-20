@@ -37,7 +37,7 @@ func (gitRepository GitRepository) ListBranches() []Alias {
 	aliases := make([]Alias, 0)
 	for _, line := range lines {
 		line = strings.Trim(line, "* ")
-		lineParts := strings.SplitN(line, " ", 3)
+		lineParts := splitCommandOutputLine(line)
 		if len(lineParts) >= 2 && len(lineParts[1]) == 40 {
 			branch := lineParts[0]
 			revision := Revision(lineParts[1])
