@@ -7,6 +7,7 @@ import (
 	"repo"
 	"resources"
 	"strconv"
+	"strings"
 )
 
 var port int
@@ -27,9 +28,26 @@ func init() {
 		"List of file paths to exclude when matching TODOs. This is useful if your repo contains binaries")
 }
 
+func serveStaticContent(w http.ResponseWriter, resourceName string) {
+	resourceContents := resources.Constants[resourceName]
+	var contentType string
+	if strings.HasSuffix(resourceName, ".css") {
+		contentType = "text/css"
+	} else if strings.HasSuffix(resourceName, ".html") {
+		contentType = "text/html"
+	} else if strings.HasSuffix(resourceName, ".js") {
+		contentType = "text/javascript"
+	} else {
+		contentType = http.DetectContentType(resourceContents)
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Write(resourceContents)
+}
+
 func serveRepoDetails(repository repo.Repository) {
 	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(resources.Constants[r.URL.Path[4:]])
+		resourceName := r.URL.Path[4:]
+		serveStaticContent(w, resourceName)
 	})
 	http.HandleFunc("/aliases",
 		func(w http.ResponseWriter, r *http.Request) {
