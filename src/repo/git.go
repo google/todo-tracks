@@ -2,8 +2,10 @@ package repo
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -94,10 +96,25 @@ func (gitRepository GitRepository) ReadRevisionMetadata(revision Revision) Revis
 	}
 }
 
-func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path string) []Line {
-	out := runGitCommandOrDie(exec.Command(
-		"git", "blame", "--root", "--line-porcelain", string(revision), "--", path))
-	result := make([]Line, 0)
+func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path string) string {
+	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, path) {
+			lineParts := strings.Split(strings.Replace(line, "\t", " ", -1), " ")
+			return lineParts[2]
+		}
+	}
+	log.Fatal("Failed to lookup blob hash for " + path)
+	return ""
+}
+
+func (gitRepository GitRepository) readRawFileOrDie(revision Revision, path string) string {
+	blob := gitRepository.getFileBlobOrDie(revision, path)
+	return runGitCommandOrDie(exec.Command("git", "show", blob))
+}
+
+func parseBlameOutputOrDie(fileName string, out string, result []Line) []Line {
 	for out != "" {
 		// First split off the next blame section
 		split := strings.SplitN(out, "\n\t", 2)
@@ -120,7 +137,6 @@ func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path st
 		if err != nil {
 			log.Fatal(err)
 		}
-		fileName := path
 		for _, blamePart := range blameParts[1:] {
 			if strings.HasPrefix(blamePart, "filename ") {
 				fileName = strings.SplitN(blamePart, " ", 2)[1]
@@ -131,22 +147,26 @@ func (gitRepository GitRepository) ReadFileAtRevision(revision Revision, path st
 	return result
 }
 
-func (gitRepository GitRepository) getFileBlobOrDie(revision Revision, path string) string {
-	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
-	lines := strings.Split(out, "\n")
-	for _, line := range lines {
-		if strings.Contains(line, path) {
-			lineParts := strings.Split(strings.Replace(line, "\t", " ", -1), " ")
-			return lineParts[2]
+func (gitRepository GitRepository) LoadTodos(revision Revision, path string, todoRegex string, result []Line) []Line {
+	raw := gitRepository.readRawFileOrDie(revision, path)
+	rawLines := strings.Split(raw, "\n")
+	for lineNumber, lineContents := range rawLines {
+		matched, err := regexp.MatchString(todoRegex, lineContents)
+		if err == nil && matched {
+			// git-blame numbers lines starting from 1 rather than 0
+			gitLineNumber := lineNumber + 1
+			out := runGitCommandOrDie(exec.Command(
+				"git", "blame", "--root", "--line-porcelain",
+				"-L", fmt.Sprintf("%d,+1", gitLineNumber),
+				string(revision), "--", path))
+			result = parseBlameOutputOrDie(path, out, result)
 		}
 	}
-	log.Fatal("Failed to lookup blob hash for " + path)
-	return ""
+	return result
 }
 
 func (gitRepository GitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
-	blob := gitRepository.getFileBlobOrDie(revision, path)
-	out := runGitCommandOrDie(exec.Command("git", "show", blob))
+	out := gitRepository.readRawFileOrDie(revision, path)
 	lines := strings.Split(out, "\n")
 	if startLine < 0 {
 		startLine = 0
