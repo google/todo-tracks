@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="todo_tracker.css" type="text/css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Latest compiled and minified CSS -->
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
+  <!--
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.js"></script>
+  -->
+  <title>TODO Tracker -- TODO List</title>
+</head>
+<body ng-app="todoTrackerApp">
+  <!-- or "container-fluid" -->
+  <div ng-controller="listTodosPaths">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <hr>
+        <h1 class="text-center csblue"><a href="/">TODO Tracker</a></h1>
+      </div>
+    </div>
+    <div class="row header-bar">
+      <div class="col-md-12">
+        <h4>TODO List</h4>
+      </div>
+    </div>
+  </div>
+  <div class="container" ng-repeat="filename in filenames">
+    <!-- Header to show branches -->
+    <div class="row header-bar-lighter">
+      <div class="col-md-2">
+        <b>File Name:</b>
+      </div>
+      <div class="col-md-4">
+        {{filename.fileName}}
+      </div>
+    </div>
+
+
+    <div class="row header-bar-text">
+      <div class="col-md-1">
+      </div>
+      <div class="col-md-4">
+        <b>Revision</b>
+      </div>
+      <div class="col-md-1">
+        Line
+      </div>
+      <div class="col-md-6">
+        Content
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+      </div>
+    </div>
+    <div class="row alternate_row" ng-repeat="oneTodo in filename.todos">
+      <div class="col-md-1">
+        <span class="glyphicon glyphicon-file pull-right" style="color:#555555"></span>
+      </div>
+        <!-- TODO: Make the column longer than the longest filename we have to display -->
+        <div class="col-md-4">
+          {{oneTodo.revision}}
+        </div>
+        <div class="col-md-1">
+          <div class="row">
+            <div class="col-md-8 text-right">
+              <!-- TODO: Include the line number in the source browse link -->
+              <a href="/browse?revision={{filename.revision}}&fileName={{filename.fileName}}">{{oneTodo.lineNumber}}</a>
+            </div>
+            <div class="col-md-4">
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <a href="todo_details.html#?revid={{filename.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
+        </div>
+    </div>
+
+
+
+  </div>
+  </div>
+  <script src="todo_tracker.js"></script>
+</body>
+</html>
+
