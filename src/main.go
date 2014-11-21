@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"repo"
@@ -149,11 +150,12 @@ func serveRepoDetails(repository repo.Repository) {
 		func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/ui/list_branches.html", http.StatusMovedPermanently)
 		})
-	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 func main() {
 	flag.Parse()
+	// TODO: Add some sanity checking that the binary was started inside of a git repo directory.
 	gitRepository := repo.NewGitRepository(todoRegex, excludePaths)
 	serveRepoDetails(gitRepository)
 }
