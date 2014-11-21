@@ -22,6 +22,7 @@ type RevisionMetadata struct {
 type Alias struct {
 	Branch   string
 	Revision Revision
+	// TODO: Add LastModified and LastModifiedBy fields based on the RevisionMetadata
 }
 
 type Line struct {
