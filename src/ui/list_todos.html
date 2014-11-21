@@ -28,7 +28,8 @@
       </div>
     </div>
   </div>
-  <!-- TODO: Add a view that is based on file paths instead of revisions -->
+  <!-- TODO(weizheng): Add a view that is based on file paths instead of revisions -->
+  <!-- TODO(weizheng): Sort the revisions based on timestamps -->
   <div class="container" ng-repeat="revision in revisions">
     <!-- Header to show branches -->
     <div class="row header-bar-lighter">
@@ -63,15 +64,17 @@
       <div class="col-md-1">
         <span class="glyphicon glyphicon-file pull-right" style="color:#555555"></span>
       </div>
-        <!-- TODO: Make the column longer than the longest filename we have to display -->
+        <!-- TODO(weizheng): Make the column longer than the longest filename we have to display.
+          It may not be as simple as making the column wider. Making it wider means the "content" column
+          will becomes shorter.-->
         <div class="col-md-4">
           {{oneTodo.fileName}}
         </div>
         <div class="col-md-1">
           <div class="row">
             <div class="col-md-8 text-right">
-              <!-- TODO: Include the line number in the source browse link -->
-              <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}">{{oneTodo.lineNumber}}</a>
+              <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}&lineNumber={{oneTodo.lineNumber}}">
+                {{oneTodo.lineNumber}}</a>
             </div>
             <div class="col-md-4">
             </div>

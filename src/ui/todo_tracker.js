@@ -1,9 +1,8 @@
 /**
- * @fileoverview Description of this file.
+ * @fileoverview Angularjs controllers for TODO Tracker HTML files.
  */
 var todoTrackerApp=angular.module("todoTrackerApp", []);
 todoTrackerApp.controller("listBranches", function($scope,$http) {
-  // $http.get(window.location.protocol + "//" + window.location.host + "/zz_list_branches_json.html")
   $http.get(window.location.protocol + "//" + window.location.host + "/aliases")
     .success(function(response) {$scope.repositories = processBranchListResponse(response);});
 });
@@ -58,8 +57,7 @@ function processBranchListResponse(response) {
 }
 
 todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
-  console.log("location = " + $location + ", search = " + $location.search() + ", revid=" + $location.search()['revid']);
-  console.log("location = " + JSON.stringify($location));
+  // console.log("location = " + JSON.stringify($location));
 
   $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $location.search()['revid'])
     .success(function(response) {$scope.revisions= processTodoListResponse(response);});
@@ -107,6 +105,7 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
   var fileName = $location.search()['fn'];
   var lineNumber = $location.search()['ln'];
   // TODO: Pass in the number of lines above and below the TODO to display
+  // This needs the JSON file to provide the informaiton.
   $http.get(window.location.protocol + "//" + window.location.host +
       "/todo?revision=" + revision + "&fileName=" + fileName + "&lineNumber=" + lineNumber)
     .success(function(response) {$scope.todoDetails = processTodoDetailsResponse(response);});
@@ -139,8 +138,8 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
       this.value = value;
       this.hasLink = hasLink;
       this.link = link;
-      // use <pre></pre> on this detail field.
-      this.htmlPre = htmlPre == null ? false : htmlPre; // use <pre></pre> on this detail field.
+      // Whether to use <pre></pre> on this detail field.
+      this.htmlPre = htmlPre == null ? false : htmlPre;
     }
 
     function Todo(revision, fileName, lineNumber, content) {
@@ -151,6 +150,8 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     }
 
     function getRevisionLink(revision) {
+      // the # sign in the URL is to make Angularjs to recoginize QS params in
+      // $location.search(). It is a workaround for a bug in Angularjs.
       return window.location.protocol + "//" + window.location.host + "/ui/list_todos.html#?revid=" + revision;
     }
 
