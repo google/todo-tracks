@@ -106,6 +106,7 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
   var revision = $location.search()['revid'];
   var fileName = $location.search()['fn'];
   var lineNumber = $location.search()['ln'];
+  // TODO: Pass in the number of lines above and below the TODO to display
   $http.get(window.location.protocol + "//" + window.location.host +
       "/todo?revision=" + revision + "&fileName=" + fileName + "&lineNumber=" + lineNumber)
     .success(function(response) {$scope.todoDetails = processTodoDetailsResponse(response);});
@@ -129,6 +130,7 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
           detailsObj.RevisionMetadata.Timestamp + ")",
           false, ""));
     todoDetails.push(new TodoDetail("Subject", detailsObj.RevisionMetadata.Subject, false, ""));
+    // TODO: Display this with syntax highlighting and the TODO line highlighted.
     todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, "", true));
 
     function TodoDetail(key, value, hasLink, link, htmlPre) {
