@@ -102,6 +102,50 @@ todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
   }
 });
 
+todoTrackerApp.controller("listTodosPaths", function($scope,$http,$location) {
+  $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $location.search()['revid'])
+    .success(function(response) {$scope.filenames = processTodoListPathsResponse(response);});
+
+   function processTodoListPathsResponse(response) {
+    var todosObj = response;
+    var todosMap = {};
+
+    for (var i = 0; i < todosObj.length; i++) {
+      var oneTodoRaw = todosObj[i];
+      var fileNameKey = oneTodoRaw.FileName;
+      if (!(fileNameKey in todosMap)) {
+        todosMap[fileNameKey] = [];
+      }
+      var todo = new Todo(oneTodoRaw.Revision, oneTodoRaw.FileName,
+          oneTodoRaw.LineNumber, oneTodoRaw.Contents);
+      todosMap[fileNameKey].push(todo);
+    }
+
+    var filenamesAndTodos = [];
+    for (var filename in todosMap) {
+      var filenameObj = new FileName(filename);
+      filenameObj.todos = todosMap[filename];
+      filenamesAndTodos.push(filenameObj);
+    }
+
+
+    function FileName(fileName) {
+      this.fileName = fileName;
+      this.todos = [];
+    }
+
+
+    function Todo(revision, fileName, lineNumber, content) {
+      this.revision = revision;
+      this.fileName = fileName;
+      this.lineNumber = lineNumber;
+      this.content = content;
+    }
+
+    return filenamesAndTodos;
+  }
+});
+
 todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
   var revision = $location.search()['revid'];
   var fileName = $location.search()['fn'];
