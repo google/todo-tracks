@@ -14,5 +14,3 @@ Use cases:
 - Examine when a TODO was added, removed, who added.
 - Hierarchy of TODOs, that is a higher level TODO was replaced with smaller
   scoped TODOs.
-
-TODO: this is a test, remove soon.
