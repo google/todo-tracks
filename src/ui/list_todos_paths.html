@@ -65,19 +65,18 @@
         <div class="col-md-4">
           {{oneTodo.revision}}
         </div>
-        <!-- TODO(kleung): Fix link to details page. -->
         <div class="col-md-1">
           <div class="row">
             <div class="col-md-8 text-right">
               <!-- TODO: Include the line number in the source browse link -->
-              <a href="/browse?revision={{filename.revision}}&fileName={{filename.fileName}}">{{oneTodo.lineNumber}}</a>
+              <a href="/browse?revision={{oneTodo.revision}}&fileName={{oneTodo.fileName}}">{{oneTodo.lineNumber}}</a>
             </div>
             <div class="col-md-4">
             </div>
           </div>
         </div>
         <div class="col-md-6">
-          <a href="todo_details.html#?revid={{filename.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
+          <a href="todo_details.html#?revid={{oneTodo.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
         </div>
     </div>
 
