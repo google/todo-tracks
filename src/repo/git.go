@@ -233,6 +233,28 @@ func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, pa
 	return buffer.String()
 }
 
+func isGitHubHttpsUrl(remoteUrl string) bool {
+	return strings.HasPrefix(remoteUrl, "https://github.com/") &&
+		strings.HasSuffix(remoteUrl, ".git")
+}
+
 func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, lineNumber int) string {
-	return fmt.Sprintf("/raw?revision=%s&fileName=%s", string(revision), url.QueryEscape(path))
+	rawUrl := fmt.Sprintf("/raw?revision=%s&fileName=%s", string(revision), url.QueryEscape(path))
+	out, err := exec.Command("git", "remote", "-v").Output()
+	if err != nil {
+		return rawUrl
+	}
+	remotes := strings.Split(strings.Trim(string(out), "\n"), "\n")
+	for _, remote := range remotes {
+		remoteParts := strings.SplitN(remote, "\t", 2)
+		if len(remoteParts) == 2 {
+			remoteUrl := strings.Split(remoteParts[1], " ")[0]
+			if isGitHubHttpsUrl(remoteUrl) {
+				browseSuffix := fmt.Sprintf("/blob/%s/%s#L%d",
+					string(revision), path, lineNumber)
+				return strings.TrimSuffix(remoteUrl, ".git") + browseSuffix
+			}
+		}
+	}
+	return rawUrl
 }
