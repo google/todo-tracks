@@ -132,6 +132,7 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     todoDetails.push(new TodoDetail("Subject", detailsObj.RevisionMetadata.Subject, false, ""));
     // TODO: Display this with syntax highlighting and the TODO line highlighted.
     todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, "", true));
+    // TODO: Add details for the list of branches the todo is missing from, added to, and removed from
 
     function TodoDetail(key, value, hasLink, link, htmlPre) {
       this.key = key;

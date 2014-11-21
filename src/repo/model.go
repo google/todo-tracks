@@ -43,6 +43,9 @@ type TodoDetails struct {
 	Id               TodoId
 	RevisionMetadata RevisionMetadata
 	Context          string
+	// TODO: Add a list of branches from which the TODO is missing (not yet added)
+	// TODO: Add a list of branches that have the TODO
+	// TODO: Add a list of branches from which the TODO has been removed
 }
 
 type Repository interface {
