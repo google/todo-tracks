@@ -30,6 +30,7 @@ modules:
                   type: ONE_TO_ONE_NAT
           serviceAccounts:
             - email: default
+              # TODO: Revise the scopes necessary for this instance.
               scopes: [
                 "https://www.googleapis.com/auth/cloud-platform",
                 "https://www.googleapis.com/auth/compute",
@@ -45,12 +46,13 @@ modules:
           disksToCreate:
             - boot: true
               autoDelete: true
-              initializeParams: 
+              initializeParams:
                 sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140828
                 diskSizeGb: 50
 
 actions:
   install-todo:
+    # TODO: Figure out how to make pull app id by default.
     commands: [
       "apt-get -qqy update",
       # Install git from backport, base wheezy git is 1.7.x which isn't
@@ -62,11 +64,12 @@ actions:
       # Initialize/clone git repo.
       "mkdir -p repo; cd repo; gcloud init todo-tracks",
       # Copy over todo binary from Google Cloud Storage bucket.
+      # TODO: Considering using wget.
       "gsutil cp gs://todo-track-bin/todos /repo/todo-tracks/default/",
       # Set executable bit on todo binary.
       "chmod +x /repo/todo-tracks/default/todos",
       # Start running todo server.
-      "cd /repo/todo-tracks/default; ./todos &",
+      "cd /repo/todo-tracks/default; ./todos --todo_regex=\"TODO([(]|:)\" &",
       # Configure cronjob to pull git repo every minute.
       "echo \"* * * * * su -s /bin/sh root -c 'cd /repo/todo-tracks/default && /usr/bin/git pull'\" >> /tmp/crontab.txt",
       "crontab /tmp/crontab.txt"
