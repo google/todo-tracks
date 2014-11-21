@@ -1,3 +1,4 @@
+# TODO(ojarjur): Add usage information.
 name: todo-tracks
 modules:
   network:
@@ -30,16 +31,8 @@ modules:
                   type: ONE_TO_ONE_NAT
           serviceAccounts:
             - email: default
-              # TODO: Revise the scopes necessary for this instance.
               scopes: [
                 "https://www.googleapis.com/auth/cloud-platform",
-                "https://www.googleapis.com/auth/compute",
-                "https://www.googleapis.com/auth/datastore",
-                "https://www.googleapis.com/auth/devstorage.full_control",
-                "https://www.googleapis.com/auth/devstorage.read_write",
-                "https://www.googleapis.com/auth/ndev.cloudman",
-                "https://www.googleapis.com/auth/userinfo.email",
-                "https://www.googleapis.com/auth/userinfo.profile",
               ]
           autoRestart: true
           initAction: install-todo
@@ -52,7 +45,7 @@ modules:
 
 actions:
   install-todo:
-    # TODO: Figure out how to make pull app id by default.
+    # TODO(ojarjur): Figure out how to make pull app id by default.
     commands: [
       "apt-get -qqy update",
       # Install git from backport, base wheezy git is 1.7.x which isn't
@@ -64,7 +57,7 @@ actions:
       # Initialize/clone git repo.
       "mkdir -p repo; cd repo; gcloud init todo-tracks",
       # Copy over todo binary from Google Cloud Storage bucket.
-      # TODO: Considering using wget.
+      # TODO(ojarjur): Considering using wget.
       "gsutil cp gs://todo-track-bin/todos /repo/todo-tracks/default/",
       # Set executable bit on todo binary.
       "chmod +x /repo/todo-tracks/default/todos",
