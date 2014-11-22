@@ -19,3 +19,17 @@ TODO: Add a getting started section.
 <!--
 TODO: Add a section detailing a sample workflow.
 -->
+
+Running in Google Compute Engine
+--------------------------------
+We provide a pre-built binary and config files for deploying the tool to a GCE VM
+using Google Deployment Manager.
+
+Assuming you already have the gcloud preview commands installed, run the following steps:
+
+    mkdir todo-tracks
+    cd todo-tracks
+    wget http://storage.googleapis.com/todo-track-bin/config/gce.sh -O gce.sh
+    wget http://storage.googleapis.com/todo-track-bin/config/gce.yaml -O gce.yaml
+    gcloud preview deployment-manager templates create todo_tracks_template --template-file gce.yaml
+    gcloud preview deployment-manager deployments --region=us-central1 create --template=todo_tracks_template todo_tracks_deployment
