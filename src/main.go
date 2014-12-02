@@ -20,6 +20,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/url"
@@ -27,6 +28,10 @@ import (
 	"resources"
 	"strconv"
 	"strings"
+)
+
+const (
+	fileContentsResource = "file_contents.html"
 )
 
 var port int
@@ -153,6 +158,12 @@ func serveRepoDetails(repository repo.Repository) {
 		})
 	http.HandleFunc("/raw",
 		func(w http.ResponseWriter, r *http.Request) {
+			htmlTemplate, err := template.New("fileContentsTemplate").Parse(
+				string(resources.Constants[fileContentsResource]))
+			if err != nil {
+				w.WriteHeader(500)
+				fmt.Fprintf(w, "Server error \"%s\"", err)
+			}
 			revision, fileName, err := readRevisionAndPathParams(r)
 			if err != nil {
 				w.WriteHeader(400)
@@ -160,7 +171,11 @@ func serveRepoDetails(repository repo.Repository) {
 				return
 			}
 			contents := repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
-			w.Write([]byte(contents))
+			err = htmlTemplate.Execute(w, contents)
+			if err != nil {
+				w.WriteHeader(500)
+				fmt.Fprintf(w, "Server error \"%s\"", err)
+			}
 		})
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
