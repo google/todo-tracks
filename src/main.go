@@ -46,7 +46,7 @@ func init() {
 		&excludePaths,
 		"exclude_paths",
 		"",
-		"List of file paths to exclude when matching TODOs. This is useful if your repo contains binaries")
+		"Comma-separated list of file paths to exclude when matching TODOs. Each path is specified as a regular expression using the re2 syntax.")
 }
 
 func serveStaticContent(w http.ResponseWriter, resourceName string) {

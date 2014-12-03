@@ -182,12 +182,36 @@ func parseBlameOutputOrDie(fileName string, out string) []Line {
 	return result
 }
 
+func compileRegexsOrDie(commaSeparatedString string) []*regexp.Regexp {
+	regexs := make([]*regexp.Regexp, 0)
+	for _, regexString := range strings.Split(commaSeparatedString, ",") {
+		if regexString != "" {
+			regex, err := regexp.Compile(regexString)
+			if err != nil {
+				log.Fatal(err)
+			}
+			regexs = append(regexs, regex)
+		}
+	}
+	return regexs
+}
+
 func (repository *gitRepository) LoadRevisionTodos(
 	revision Revision, todoRegex, excludePaths string) []Line {
+	// Since this is specified by the user who started the server, we treat erros as fatal.
+	excludeRegexs := compileRegexsOrDie(excludePaths)
+	includePath := func(path string) bool {
+		for _, regex := range excludeRegexs {
+			if regex.MatchString(path) {
+				return false
+			}
+		}
+		return true
+	}
 	if !repository.RevisionTodosCache[revision].Present {
 		todos := make([]Line, 0)
 		for _, path := range repository.ReadRevisionContents(revision).Paths {
-			if !strings.Contains(excludePaths, path) {
+			if includePath(path) {
 				todos = append(todos,
 					repository.LoadFileTodos(revision, path, todoRegex)...)
 			}
