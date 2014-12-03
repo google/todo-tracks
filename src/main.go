@@ -17,16 +17,13 @@ limitations under the License.
 package main
 
 import (
-	"errors"
+	"dashboard"
 	"flag"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"repo"
 	"resources"
-	"strconv"
 	"strings"
 )
 
@@ -68,115 +65,16 @@ func serveStaticContent(w http.ResponseWriter, resourceName string) {
 	w.Write(resourceContents)
 }
 
-func readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
-	revisionParam := r.URL.Query().Get("revision")
-	if revisionParam == "" {
-		return repo.Revision(""), "", errors.New("Missing the revision parameter")
-	}
-	fileName, err := url.QueryUnescape(r.URL.Query().Get("fileName"))
-	if err != nil || fileName == "" {
-		return repo.Revision(""), "", errors.New("Missing the fileName parameter")
-	}
-	return repo.Revision(revisionParam), fileName, nil
-}
-
-func serveRepoDetails(repository repo.Repository) {
+func serveRepoDetails(dashboard dashboard.Dashboard) {
 	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.URL.Path[4:]
 		serveStaticContent(w, resourceName)
 	})
-	http.HandleFunc("/aliases",
-		func(w http.ResponseWriter, r *http.Request) {
-			err := repo.WriteJson(w, repository)
-			if err != nil {
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "Server error \"%s\"", err)
-			}
-		})
-	http.HandleFunc("/revision",
-		func(w http.ResponseWriter, r *http.Request) {
-			revisionParam := r.URL.Query().Get("id")
-			if revisionParam == "" {
-				w.WriteHeader(400)
-				fmt.Fprint(w, "Missing required parameter 'id'")
-				return
-			}
-			revision := repo.Revision(revisionParam)
-			err := repo.WriteTodosJson(w, repository, revision, todoRegex, excludePaths)
-			if err != nil {
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "Server error \"%s\"", err)
-			}
-		})
-	http.HandleFunc("/todo",
-		func(w http.ResponseWriter, r *http.Request) {
-			revision, fileName, err := readRevisionAndPathParams(r)
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, err.Error())
-				return
-			}
-			lineNumberParam := r.URL.Query().Get("lineNumber")
-			if lineNumberParam == "" {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "Missing the lineNumber param")
-				return
-			}
-			lineNumber, err := strconv.Atoi(lineNumberParam)
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
-				return
-			}
-			todoId := repo.TodoId{
-				Revision:   revision,
-				FileName:   fileName,
-				LineNumber: lineNumber,
-			}
-			repo.WriteTodoDetailsJson(w, repository, todoId)
-		})
-	http.HandleFunc("/browse",
-		func(w http.ResponseWriter, r *http.Request) {
-			revision, fileName, err := readRevisionAndPathParams(r)
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, err.Error())
-				return
-			}
-			lineNumberParam := r.URL.Query().Get("lineNumber")
-			if lineNumberParam == "" {
-				lineNumberParam = "1"
-			}
-			lineNumber, err := strconv.Atoi(lineNumberParam)
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
-				return
-			}
-			http.Redirect(w, r, repository.GetBrowseUrl(
-				revision, fileName, lineNumber), http.StatusMovedPermanently)
-		})
-	http.HandleFunc("/raw",
-		func(w http.ResponseWriter, r *http.Request) {
-			htmlTemplate, err := template.New("fileContentsTemplate").Parse(
-				string(resources.Constants[fileContentsResource]))
-			if err != nil {
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "Server error \"%s\"", err)
-			}
-			revision, fileName, err := readRevisionAndPathParams(r)
-			if err != nil {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, err.Error())
-				return
-			}
-			contents := repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
-			err = htmlTemplate.Execute(w, contents)
-			if err != nil {
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "Server error \"%s\"", err)
-			}
-		})
+	http.HandleFunc("/aliases", dashboard.ServeAliasesJson)
+	http.HandleFunc("/revision", dashboard.ServeRevisionJson)
+	http.HandleFunc("/todo", dashboard.ServeTodoJson)
+	http.HandleFunc("/browse", dashboard.ServeBrowseRedirect)
+	http.HandleFunc("/raw", dashboard.ServeFileContents)
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/ui/list_branches.html", http.StatusMovedPermanently)
@@ -188,5 +86,6 @@ func main() {
 	flag.Parse()
 	// TODO: Add some sanity checking that the binary was started inside of a git repo directory.
 	gitRepository := repo.NewGitRepository(todoRegex, excludePaths)
-	serveRepoDetails(gitRepository)
+	dashboard := dashboard.Dashboard{gitRepository, todoRegex, excludePaths}
+	serveRepoDetails(dashboard)
 }

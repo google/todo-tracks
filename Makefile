@@ -1,7 +1,9 @@
-build:	resource-constants
+build:	test
 	GOPATH=$(shell pwd) go build -o bin/todos src/main.go
 
-#TODO: Add a tests rule.
+test:	resource-constants
+	GOPATH=$(shell pwd) go test `find src -name '*_test.go' | sed 's/^src\///' | uniq | xargs dirname`
+
 resource-constants: fmt
 	go build -o bin/resource-constants utils/resource-constants.go
 	if [ ! -e "src/resources" ]; then mkdir src/resources; fi
