@@ -18,6 +18,7 @@ package repo
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -26,6 +27,20 @@ import (
 	"strconv"
 	"strings"
 )
+
+const (
+	hashFormat = "^([[:xdigit:]]){40}$"
+)
+
+var hashRegexp *regexp.Regexp
+
+func init() {
+	var err error
+	hashRegexp, err = regexp.Compile(hashFormat)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 type todosCacheEntry struct {
 	Present bool
@@ -51,14 +66,22 @@ func NewGitRepository(todoRegex, excludePaths string) Repository {
 	return repository
 }
 
-func runGitCommandOrDie(cmd *exec.Cmd) string {
+func runGitCommand(cmd *exec.Cmd) (string, error) {
 	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(string(out), " \n"), nil
+}
+
+func runGitCommandOrDie(cmd *exec.Cmd) string {
+	out, err := runGitCommand(cmd)
 	if err != nil {
 		log.Print(cmd.Args)
 		log.Print(out)
 		log.Fatal(err)
 	}
-	return strings.Trim(string(out), " \n")
+	return out
 }
 
 func splitCommandOutputLine(line string) []string {
@@ -329,4 +352,15 @@ func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, li
 		}
 	}
 	return rawUrl
+}
+
+func (repository *gitRepository) ValidateRevision(revisionString string) (Revision, error) {
+	if !hashRegexp.MatchString(revisionString) {
+		return Revision(""), errors.New(fmt.Sprintf("Invalid hash format: %s", revisionString))
+	}
+	_, err := runGitCommand(exec.Command("git", "ls-tree", "--name-only", revisionString))
+	if err != nil {
+		return Revision(""), err
+	}
+	return Revision(revisionString), nil
 }

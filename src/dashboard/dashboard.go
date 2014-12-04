@@ -37,7 +37,7 @@ type Dashboard struct {
 	ExcludePaths string
 }
 
-func readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
+func (db Dashboard) readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
 	revisionParam := r.URL.Query().Get("revision")
 	if revisionParam == "" {
 		return repo.Revision(""), "", errors.New("Missing the revision parameter")
@@ -46,7 +46,11 @@ func readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
 	if err != nil || fileName == "" {
 		return repo.Revision(""), "", errors.New("Missing the fileName parameter")
 	}
-	return repo.Revision(revisionParam), fileName, nil
+	revision, err := db.Repository.ValidateRevision(revisionParam)
+	if err != nil {
+		return repo.Revision(""), "", err
+	}
+	return revision, fileName, nil
 }
 
 // Serve the aliases JSON for a repo.
@@ -67,8 +71,13 @@ func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Missing required parameter 'id'")
 		return
 	}
-	revision := repo.Revision(revisionParam)
-	err := repo.WriteTodosJson(
+	revision, err := db.Repository.ValidateRevision(revisionParam)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Invalid revision: %s", revisionParam)
+		return
+	}
+	err = repo.WriteTodosJson(
 		w, db.Repository, revision, db.TodoRegex, db.ExcludePaths)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -79,7 +88,7 @@ func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
 // Serve the details JSON for a single TODO.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
-	revision, fileName, err := readRevisionAndPathParams(r)
+	revision, fileName, err := db.readRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
@@ -108,7 +117,7 @@ func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
 // Serve the redirect for browsing a file.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeBrowseRedirect(w http.ResponseWriter, r *http.Request) {
-	revision, fileName, err := readRevisionAndPathParams(r)
+	revision, fileName, err := db.readRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
@@ -137,7 +146,7 @@ func (db Dashboard) ServeFileContents(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
 	}
-	revision, fileName, err := readRevisionAndPathParams(r)
+	revision, fileName, err := db.readRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())

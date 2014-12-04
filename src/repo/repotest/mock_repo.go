@@ -16,6 +16,8 @@ limitations under the License.
 
 package repotest
 
+import "errors"
+import "fmt"
 import "repo"
 
 type MockRepository struct {
@@ -54,4 +56,11 @@ func (repository MockRepository) LoadFileTodos(revision repo.Revision, path stri
 
 func (repository MockRepository) GetBrowseUrl(revision repo.Revision, path string, lineNumber int) string {
 	return ""
+}
+
+func (repository MockRepository) ValidateRevision(revisionString string) (repo.Revision, error) {
+	if _, ok := repository.RevisionTodos[revisionString]; ok {
+		return repo.Revision(revisionString), nil
+	}
+	return repo.Revision(""), errors.New(fmt.Sprintf("Not a valid revision: %s", revisionString))
 }

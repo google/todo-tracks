@@ -72,6 +72,10 @@ type Repository interface {
 	LoadRevisionTodos(revision Revision, todoRegex, excludePaths string) []Line
 	LoadFileTodos(revision Revision, path string, todoRegex string) []Line
 	GetBrowseUrl(revision Revision, path string, lineNumber int) string
+
+	// Check that the given string is a valid revision.
+	// This is intended for user input validation.
+	ValidateRevision(revisionString string) (Revision, error)
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
