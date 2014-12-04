@@ -15,3 +15,8 @@ fmt:
 clean:
 	rm -r bin || true
 	rm -r src/resources || true
+
+# The following rule copies the locally built binary into our publicly readable
+# download location. This will fail for anyone who is not on the core todo-tracks team.
+publish: build
+	gsutil cp -a public-read bin/todos gs://todo-track-bin/todos
