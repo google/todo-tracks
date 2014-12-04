@@ -64,3 +64,7 @@ func (repository MockRepository) ValidateRevision(revisionString string) (repo.R
 	}
 	return repo.Revision(""), errors.New(fmt.Sprintf("Not a valid revision: %s", revisionString))
 }
+
+func (repository MockRepository) ValidatePathAtRevision(revision repo.Revision, path string) error {
+	return nil
+}

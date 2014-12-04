@@ -364,3 +364,17 @@ func (repository *gitRepository) ValidateRevision(revisionString string) (Revisi
 	}
 	return Revision(revisionString), nil
 }
+
+func (repository *gitRepository) ValidatePathAtRevision(revision Revision, path string) error {
+	out, err := runGitCommand(exec.Command("git", "ls-tree", "-r", "--name-only", string(revision)))
+	if err != nil {
+		return err
+	}
+	revisionPaths := strings.Split(out, "\n")
+	for _, revisionPath := range revisionPaths {
+		if path == revisionPath {
+			return nil
+		}
+	}
+	return errors.New(fmt.Sprintf("Path '%s' not found at revision %s", path, string(revision)))
+}

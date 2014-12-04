@@ -50,7 +50,8 @@ func (db Dashboard) readRevisionAndPathParams(r *http.Request) (repo.Revision, s
 	if err != nil {
 		return repo.Revision(""), "", err
 	}
-	return revision, fileName, nil
+	err = db.Repository.ValidatePathAtRevision(revision, fileName)
+	return revision, fileName, err
 }
 
 // Serve the aliases JSON for a repo.

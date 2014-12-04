@@ -76,6 +76,10 @@ type Repository interface {
 	// Check that the given string is a valid revision.
 	// This is intended for user input validation.
 	ValidateRevision(revisionString string) (Revision, error)
+
+	// Check that the given path is in the given revision.
+	// This is intended for user input validation.
+	ValidatePathAtRevision(revision Revision, path string) error
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
