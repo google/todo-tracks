@@ -75,6 +75,10 @@ func serveRepoDetails(dashboard dashboard.Dashboard) {
 	http.HandleFunc("/todo", dashboard.ServeTodoJson)
 	http.HandleFunc("/browse", dashboard.ServeBrowseRedirect)
 	http.HandleFunc("/raw", dashboard.ServeFileContents)
+	http.HandleFunc("/_ah/health",
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "ok")
+		})
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/ui/list_branches.html", http.StatusMovedPermanently)
