@@ -65,5 +65,18 @@ modules:
 actions:
   install-todo:
     commands: [
+      # First set up the VM to have the appropriate pre-requisites
+      #   Install git from backport, base wheezy git is 1.7.x which isn't
+      "apt-get -qqy update",
+      "apt-get -qqy -t wheezy-backports install git",
+
+      #   Update gcloud to have the preview components (which includes deployment-manager)
+      "gcloud --quiet components update",
+      "gcloud --quiet components update preview",
+
+      # Finally, copy over todo binary from Google Cloud Storage bucket, and set it up.
+      "mkdir -p /bin && wget http://storage.googleapis.com/todo-track-bin/todos -O /bin/todos",
+      #   Set executable bit on todo binary.
+      "chmod +x /bin/todos",
       "%file:gce.sh",
     ]
