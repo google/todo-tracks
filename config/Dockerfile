@@ -33,6 +33,8 @@ RUN /google-cloud-sdk/install.sh --usage-reporting=true --path-update=true --bas
 ENV PATH /google-cloud-sdk/bin:$PATH
 
 ADD gce.sh /bin/gce.sh
+RUN chmod +x /bin/gce.sh
+RUN touch /var/log/cron.log
 
 EXPOSE 8080
-CMD ["bin/sh", "/bin/gce.sh"]
+CMD ["/bin/sh", "-c", "/bin/gce.sh & cron; tail -f /var/log/cron.log"]
