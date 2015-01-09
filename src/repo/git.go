@@ -333,6 +333,15 @@ func isGitHubHttpsUrl(remoteUrl string) bool {
 		strings.HasSuffix(remoteUrl, ".git")
 }
 
+func isGitHubSshUrl(remoteUrl string) bool {
+	return strings.HasPrefix(remoteUrl, "git@github.com:") &&
+		strings.HasSuffix(remoteUrl, ".git")
+}
+
+func gitHubBrowseSuffix(revision Revision, path string, lineNumber int) string {
+	return fmt.Sprintf("/blob/%s/%s#L%d", string(revision), path, lineNumber)
+}
+
 func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, lineNumber int) string {
 	rawUrl := fmt.Sprintf("/raw?revision=%s&fileName=%s", string(revision), url.QueryEscape(path))
 	out, err := exec.Command("git", "remote", "-v").Output()
@@ -345,9 +354,15 @@ func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, li
 		if len(remoteParts) == 2 {
 			remoteUrl := strings.Split(remoteParts[1], " ")[0]
 			if isGitHubHttpsUrl(remoteUrl) {
-				browseSuffix := fmt.Sprintf("/blob/%s/%s#L%d",
-					string(revision), path, lineNumber)
+				browseSuffix := gitHubBrowseSuffix(revision, path, lineNumber)
 				return strings.TrimSuffix(remoteUrl, ".git") + browseSuffix
+			}
+			if isGitHubSshUrl(remoteUrl) {
+				browseSuffix := gitHubBrowseSuffix(revision, path, lineNumber)
+				repoName := strings.SplitN(
+					strings.TrimSuffix(remoteUrl, ".git"),
+					":", 2)[1]
+				return "https://github.com/" + repoName + browseSuffix
 			}
 		}
 	}
