@@ -95,6 +95,8 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	gitRepository := repo.NewGitRepository(cwd, todoRegex, excludePaths)
-	dashboard := dashboard.Dashboard{gitRepository, todoRegex, excludePaths}
+	repos := make(map[string]*repo.Repository)
+	repos[gitRepository.GetRepoId()] = &gitRepository
+	dashboard := dashboard.Dashboard{repos, todoRegex, excludePaths}
 	serveRepoDetails(dashboard)
 }

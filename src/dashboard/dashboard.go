@@ -17,6 +17,7 @@ limitations under the License.
 package dashboard
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -24,6 +25,7 @@ import (
 	"net/url"
 	"repo"
 	"resources"
+	"sort"
 	"strconv"
 )
 
@@ -32,31 +34,68 @@ const (
 )
 
 type Dashboard struct {
-	Repository   repo.Repository
+	Repositories map[string]*repo.Repository
 	TodoRegex    string
 	ExcludePaths string
 }
 
-func (db Dashboard) readRevisionAndPathParams(r *http.Request) (repo.Revision, string, error) {
+func (db Dashboard) readRepoParam(r *http.Request) (*repo.Repository, error) {
+	repoParam := r.URL.Query().Get("repo")
+	if repoParam == "" {
+		if len(db.Repositories) != 1 {
+			return nil, errors.New("Missing the repo parameter")
+		}
+		for key := range db.Repositories {
+			repoParam = key
+			break
+		}
+	}
+	repository := db.Repositories[repoParam]
+	if repository == nil {
+		return nil, errors.New(fmt.Sprintf("Unknown repo '%s'", repoParam))
+	}
+	return repository, nil
+}
+
+func (db Dashboard) readRepoAndRevisionParams(r *http.Request) (*repo.Repository, repo.Revision, error) {
+	repository, err := db.readRepoParam(r)
+	if err != nil {
+		return nil, repo.Revision(""), err
+	}
 	revisionParam := r.URL.Query().Get("revision")
 	if revisionParam == "" {
-		return repo.Revision(""), "", errors.New("Missing the revision parameter")
+		return nil, repo.Revision(""), errors.New("Missing the revision parameter")
+	}
+	revision, err := (*repository).ValidateRevision(revisionParam)
+	if err != nil {
+		return nil, repo.Revision(""), err
+	}
+	return repository, revision, nil
+}
+
+func (db Dashboard) readRepoRevisionAndPathParams(r *http.Request) (*repo.Repository, repo.Revision, string, error) {
+	repository, revision, err := db.readRepoAndRevisionParams(r)
+	if err != nil {
+		return nil, repo.Revision(""), "", err
 	}
 	fileName, err := url.QueryUnescape(r.URL.Query().Get("fileName"))
 	if err != nil || fileName == "" {
-		return repo.Revision(""), "", errors.New("Missing the fileName parameter")
+		return nil, repo.Revision(""), "", errors.New("Missing the fileName parameter")
 	}
-	revision, err := db.Repository.ValidateRevision(revisionParam)
-	if err != nil {
-		return repo.Revision(""), "", err
-	}
-	err = db.Repository.ValidatePathAtRevision(revision, fileName)
-	return revision, fileName, err
+	err = (*repository).ValidatePathAtRevision(revision, fileName)
+	return repository, revision, fileName, err
 }
 
 // Serve the aliases JSON for a repo.
 func (db Dashboard) ServeAliasesJson(w http.ResponseWriter, r *http.Request) {
-	err := repo.WriteJson(w, db.Repository)
+	repositoryPtr, err := db.readRepoParam(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error loading repo: \"%s\"", err)
+		return
+	}
+	repository := *repositoryPtr
+	err = repo.WriteJson(w, repository)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
@@ -66,20 +105,27 @@ func (db Dashboard) ServeAliasesJson(w http.ResponseWriter, r *http.Request) {
 // Serve the JSON for a single revision.
 // The ID of the revision is taken from the URL parameters of the request.
 func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
+	repositoryPtr, err := db.readRepoParam(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	repository := *repositoryPtr
 	revisionParam := r.URL.Query().Get("id")
 	if revisionParam == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "Missing required parameter 'id'")
 		return
 	}
-	revision, err := db.Repository.ValidateRevision(revisionParam)
+	revision, err := repository.ValidateRevision(revisionParam)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid revision: %s", revisionParam)
 		return
 	}
 	err = repo.WriteTodosJson(
-		w, db.Repository, revision, db.TodoRegex, db.ExcludePaths)
+		w, repository, revision, db.TodoRegex, db.ExcludePaths)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
@@ -89,12 +135,13 @@ func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
 // Serve the details JSON for a single TODO.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
-	revision, fileName, err := db.readRevisionAndPathParams(r)
+	repositoryPtr, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	repository := *repositoryPtr
 	lineNumberParam := r.URL.Query().Get("lineNumber")
 	if lineNumberParam == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -112,18 +159,19 @@ func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
 		FileName:   fileName,
 		LineNumber: lineNumber,
 	}
-	repo.WriteTodoDetailsJson(w, db.Repository, todoId)
+	repo.WriteTodoDetailsJson(w, repository, todoId)
 }
 
 // Serve the redirect for browsing a file.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeBrowseRedirect(w http.ResponseWriter, r *http.Request) {
-	revision, fileName, err := db.readRevisionAndPathParams(r)
+	repositoryPtr, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	repository := *repositoryPtr
 	lineNumberParam := r.URL.Query().Get("lineNumber")
 	if lineNumberParam == "" {
 		lineNumberParam = "1"
@@ -134,7 +182,7 @@ func (db Dashboard) ServeBrowseRedirect(w http.ResponseWriter, r *http.Request) 
 		fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
 		return
 	}
-	http.Redirect(w, r, db.Repository.GetBrowseUrl(
+	http.Redirect(w, r, repository.GetBrowseUrl(
 		revision, fileName, lineNumber), http.StatusMovedPermanently)
 }
 
@@ -147,16 +195,42 @@ func (db Dashboard) ServeFileContents(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
 	}
-	revision, fileName, err := db.readRevisionAndPathParams(r)
+	repositoryPtr, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
-	contents := db.Repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
+	repository := *repositoryPtr
+	contents := repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
 	err = htmlTemplate.Execute(w, contents)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
 	}
+}
+
+type repoPath struct {
+	Path   string
+	RepoId string
+}
+type sortByPath []repoPath
+
+func (rs sortByPath) Len() int           { return len(rs) }
+func (rs sortByPath) Swap(i, j int)      { rs[i], rs[j] = rs[j], rs[i] }
+func (rs sortByPath) Less(i, j int) bool { return rs[i].Path < rs[j].Path }
+
+func (db Dashboard) ServeReposJson(w http.ResponseWriter, r *http.Request) {
+	repoPaths := make([]repoPath, 0)
+	for repoId, repository := range db.Repositories {
+		repoPaths = append(repoPaths, repoPath{(*repository).GetRepoPath(), repoId})
+	}
+	sort.Sort(sortByPath(repoPaths))
+
+	reposJson, err := json.Marshal(repoPaths)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Server error \"%s\"", err)
+	}
+	w.Write(reposJson)
 }

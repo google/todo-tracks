@@ -39,6 +39,7 @@ const (
 var mockAlias repo.Alias
 var mockTodo repo.Line
 var mockRepo repo.Repository
+var mockRepos map[string]*repo.Repository
 
 func init() {
 	mockAlias = repo.Alias{"branch", repo.Revision("revision")}
@@ -58,18 +59,25 @@ func init() {
 		Aliases:       aliases,
 		RevisionTodos: revisionTodos,
 	}
+	mockRepos = make(map[string]*repo.Repository)
+	mockRepos[mockRepo.GetRepoId()] = &mockRepo
 }
 
-func TestServeAliasesJson(t *testing.T) {
-	request := http.Request{}
+func TestServeAliasesJsonNoRepo(t *testing.T) {
+	request, err := http.NewRequest("GET", "/?repo="+mockRepo.GetRepoId(), strings.NewReader(""))
+	if err != nil {
+		t.Error(err)
+	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
-	db.ServeAliasesJson(rw, &request)
+	db := dashboard.Dashboard{mockRepos, "", ""}
+	db.ServeAliasesJson(rw, request)
 	if rw.Code != http.StatusOK {
-		t.Errorf("Expected a response code of %d, but saw %d", http.StatusOK, rw.Code)
+		t.Errorf("Expected a response code of %d, but saw %d, with a body of '%s'",
+			http.StatusOK, rw.Code, rw.Body.String())
+		return
 	}
 	var returnedAliases []repo.Alias
-	err := json.Unmarshal(rw.Body.Bytes(), &returnedAliases)
+	err = json.Unmarshal(rw.Body.Bytes(), &returnedAliases)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,13 +86,51 @@ func TestServeAliasesJson(t *testing.T) {
 	}
 }
 
-func TestServeRevisionJsonNoId(t *testing.T) {
+func TestServeAliasesJson(t *testing.T) {
+	request, err := http.NewRequest("GET", "/?repo="+mockRepo.GetRepoId(), strings.NewReader(""))
+	if err != nil {
+		t.Error(err)
+	}
+	rw := httptest.NewRecorder()
+	db := dashboard.Dashboard{mockRepos, "", ""}
+	db.ServeAliasesJson(rw, request)
+	if rw.Code != http.StatusOK {
+		t.Errorf("Expected a response code of %d, but saw %d, with a body of '%s'",
+			http.StatusOK, rw.Code, rw.Body.String())
+		return
+	}
+	var returnedAliases []repo.Alias
+	err = json.Unmarshal(rw.Body.Bytes(), &returnedAliases)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(returnedAliases) != 1 || returnedAliases[0] != mockAlias {
+		t.Errorf("Expected a singleton slice of %s, but saw %s", mockAlias, returnedAliases)
+	}
+}
+
+func TestServeRevisionJsonNoRepo(t *testing.T) {
 	request, err := http.NewRequest("GET", "/revision", strings.NewReader(""))
 	if err != nil {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
+	db.ServeRevisionJson(rw, request)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
+	}
+}
+
+func TestServeRevisionJsonNoId(t *testing.T) {
+	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
+	request, err := http.NewRequest("GET", "/revision?"+params.Encode(), strings.NewReader(""))
+	if err != nil {
+		t.Error(err)
+	}
+	rw := httptest.NewRecorder()
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeRevisionJson(rw, request)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
@@ -92,15 +138,20 @@ func TestServeRevisionJsonNoId(t *testing.T) {
 }
 
 func TestServeRevisionJson(t *testing.T) {
-	request, err := http.NewRequest("GET", "/revision?id="+TestRevision, strings.NewReader(""))
+	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
+	params.Add("id", TestRevision)
+	request, err := http.NewRequest("GET", "/revision?"+params.Encode(), strings.NewReader(""))
 	if err != nil {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeRevisionJson(rw, request)
 	if rw.Code != http.StatusOK {
-		t.Errorf("Expected a response code of %d, but saw %d", http.StatusOK, rw.Code)
+		t.Errorf("Expected a response code of %d, but saw %d, with a body of '%s'",
+			http.StatusOK, rw.Code, rw.Body.String())
+		return
 	}
 	var returnedTodos []repo.Line
 	err = json.Unmarshal(rw.Body.Bytes(), &returnedTodos)
@@ -112,13 +163,28 @@ func TestServeRevisionJson(t *testing.T) {
 	}
 }
 
-func TestServeTodoJsonNoRevision(t *testing.T) {
+func TestServeTodoJsonNoRepo(t *testing.T) {
 	request, err := http.NewRequest("GET", "/todo", strings.NewReader(""))
 	if err != nil {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
+	db.ServeTodoJson(rw, request)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
+	}
+}
+
+func TestServeTodoJsonNoRevision(t *testing.T) {
+	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
+	request, err := http.NewRequest("GET", "/todo?"+params.Encode(), strings.NewReader(""))
+	if err != nil {
+		t.Error(err)
+	}
+	rw := httptest.NewRecorder()
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeTodoJson(rw, request)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
@@ -127,13 +193,14 @@ func TestServeTodoJsonNoRevision(t *testing.T) {
 
 func TestServeTodoJsonNoFileName(t *testing.T) {
 	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
 	params.Add("revision", TestRevision)
 	request, err := http.NewRequest("GET", "/todo?"+params.Encode(), strings.NewReader(""))
 	if err != nil {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeTodoJson(rw, request)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
@@ -142,6 +209,7 @@ func TestServeTodoJsonNoFileName(t *testing.T) {
 
 func TestServeTodoJsonNoLineNumber(t *testing.T) {
 	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
 	params.Add("revision", TestRevision)
 	params.Add("fileName", TestFileName)
 	request, err := http.NewRequest("GET", "/todo?"+params.Encode(), strings.NewReader(""))
@@ -149,7 +217,7 @@ func TestServeTodoJsonNoLineNumber(t *testing.T) {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeTodoJson(rw, request)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
@@ -158,6 +226,7 @@ func TestServeTodoJsonNoLineNumber(t *testing.T) {
 
 func TestServeTodoJsonInvalidLineNumber(t *testing.T) {
 	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
 	params.Add("revision", TestRevision)
 	params.Add("fileName", TestFileName)
 	params.Add("lineNumber", "fortyTwo")
@@ -166,7 +235,7 @@ func TestServeTodoJsonInvalidLineNumber(t *testing.T) {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeTodoJson(rw, request)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Expected a response code of %d, but saw %d", http.StatusBadRequest, rw.Code)
@@ -175,6 +244,7 @@ func TestServeTodoJsonInvalidLineNumber(t *testing.T) {
 
 func TestServeTodoJson(t *testing.T) {
 	params := url.Values{}
+	params.Add("repo", mockRepo.GetRepoId())
 	params.Add("revision", TestRevision)
 	params.Add("fileName", TestFileName)
 	params.Add("lineNumber", strconv.Itoa(TestLineNumber))
@@ -183,10 +253,12 @@ func TestServeTodoJson(t *testing.T) {
 		t.Error(err)
 	}
 	rw := httptest.NewRecorder()
-	db := dashboard.Dashboard{mockRepo, "", ""}
+	db := dashboard.Dashboard{mockRepos, "", ""}
 	db.ServeTodoJson(rw, request)
 	if rw.Code != http.StatusOK {
-		t.Errorf("Expected a response code of %d, but saw %d", http.StatusOK, rw.Code)
+		t.Errorf("Expected a response code of %d, but saw %d, with a body of '%s'",
+			http.StatusOK, rw.Code, rw.Body.String())
+		return
 	}
 	var returnedTodo repo.TodoDetails
 	err = json.Unmarshal(rw.Body.Bytes(), &returnedTodo)
