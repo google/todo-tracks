@@ -65,6 +65,11 @@ type TodoDetails struct {
 }
 
 type Repository interface {
+	// Get an opaque ID that uniquely identifies this repo on this machine.
+	GetRepoId() string
+	// Get the path to this repo on this machine.
+	GetRepoPath() string
+
 	ListBranches() []Alias
 	ReadRevisionContents(revision Revision) *RevisionContents
 	ReadRevisionMetadata(revision Revision) RevisionMetadata

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"repo"
 	"resources"
 	"strings"
@@ -89,7 +90,11 @@ func serveRepoDetails(dashboard dashboard.Dashboard) {
 func main() {
 	flag.Parse()
 	// TODO: Add some sanity checking that the binary was started inside of a git repo directory.
-	gitRepository := repo.NewGitRepository(todoRegex, excludePaths)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	gitRepository := repo.NewGitRepository(cwd, todoRegex, excludePaths)
 	dashboard := dashboard.Dashboard{gitRepository, todoRegex, excludePaths}
 	serveRepoDetails(dashboard)
 }
