@@ -64,7 +64,7 @@ func init() {
 }
 
 func TestServeAliasesJsonNoRepo(t *testing.T) {
-	request, err := http.NewRequest("GET", "/?repo="+mockRepo.GetRepoId(), strings.NewReader(""))
+	request, err := http.NewRequest("GET", "/", strings.NewReader(""))
 	if err != nil {
 		t.Error(err)
 	}
@@ -140,7 +140,7 @@ func TestServeRevisionJsonNoId(t *testing.T) {
 func TestServeRevisionJson(t *testing.T) {
 	params := url.Values{}
 	params.Add("repo", mockRepo.GetRepoId())
-	params.Add("id", TestRevision)
+	params.Add("revision", TestRevision)
 	request, err := http.NewRequest("GET", "/revision?"+params.Encode(), strings.NewReader(""))
 	if err != nil {
 		t.Error(err)

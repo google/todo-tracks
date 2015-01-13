@@ -87,7 +87,7 @@ limitations under the License.
         <div class="col-md-1">
           <div class="row">
             <div class="col-md-8 text-right">
-              <a href="/browse?revision={{revision.revision}}&fileName={{oneTodo.fileName}}&lineNumber={{oneTodo.lineNumber}}">
+              <a href="/browse?repo={{oneTodo.repo}}&revision={{oneTodo.revision}}&fileName={{oneTodo.fileName}}&lineNumber={{oneTodo.lineNumber}}">
                 {{oneTodo.lineNumber}}</a>
             </div>
             <div class="col-md-4">
@@ -95,7 +95,7 @@ limitations under the License.
           </div>
         </div>
         <div class="col-md-6">
-          <a href="todo_details.html#?revid={{revision.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
+          <a href="todo_details.html#?repo={{oneTodo.repo}}&revision={{oneTodo.revision}}&fn={{oneTodo.fileName}}&ln={{oneTodo.lineNumber}}">{{oneTodo.content}}</a>
         </div>
     </div>
 

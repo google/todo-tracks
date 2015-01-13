@@ -18,64 +18,84 @@ limitations under the License.
  * @fileoverview Angularjs controllers for TODO Tracker HTML files.
  */
 var todoTrackerApp=angular.module("todoTrackerApp", []);
-todoTrackerApp.controller("listBranches", function($scope,$http) {
-  $http.get(window.location.protocol + "//" + window.location.host + "/aliases")
-    .success(function(response) {$scope.repositories = processBranchListResponse(response);});
+todoTrackerApp.controller("listRepos", function($scope,$http) {
+  $http.get(window.location.protocol + "//" + window.location.host + "/repos")
+    .success(function(response) {$scope.repositories = processRepoListResponse(response);});
+
+  function processRepoListResponse(response) {
+    var repos = []
+    for (var i in response) {
+      var repoRaw = response[i]
+      repos.push(new Repo(repoRaw.Path, repoRaw.RepoId))
+    }
+    return repos;
+  }
+
+  function Repo(path, id) {
+    this.path = path;
+    this.id = id;
+  }
 });
 
-function processBranchListResponse(response) {
-  var branchesObj = response;
-  var reposRaw = {};
+todoTrackerApp.controller("listBranches", function($scope,$http,$location) {
+  var repo = $location.search()['repo'];
+  $http.get(window.location.protocol + "//" + window.location.host + "/aliases?repo=" + repo)
+    .success(function(response) {$scope.remotes = processBranchListResponse(response);});
 
-  for (var i = 0; i < branchesObj.length; i++) {
-    var oneBranchRaw = branchesObj[i];
-    console.log("branch = " + oneBranchRaw.Branch);
-    var result = parseBranchName(oneBranchRaw.Branch);
-    // TODO: add lastModified and lastModifiedBy fields
-    var branch = new Branch(result[1], oneBranchRaw.Revision, "", "");
-    if (!(result[0] in reposRaw)) {
-      reposRaw[result[0]] = [];
+  function processBranchListResponse(response) {
+    var remotesRaw = {};
+
+    for (var i in response) {
+      var oneBranchRaw = response[i];
+      console.log("branch = " + oneBranchRaw.Branch);
+      var result = parseBranchName(oneBranchRaw.Branch);
+      // TODO: add lastModified and lastModifiedBy fields
+      var branch = new Branch(result[1], oneBranchRaw.Revision, "", "");
+      if (!(result[0] in remotesRaw)) {
+	remotesRaw[result[0]] = [];
+      }
+      remotesRaw[result[0]].push(branch);
     }
-    reposRaw[result[0]].push(branch);
-  }
 
-  var repos = [];
-  for (var r in reposRaw) {
-    var repo = new Repository(r);
-    repo.branches = reposRaw[r];
-    repos.push(repo);
-  }
-
-
-  function Repository(repository) {
-    this.repository = repository;
-    this.branches = [];
-  }
-
-  function Branch(branch, revision, lastModified, lastModifiedBy) {
-    this.branch = branch;
-    this.revision = revision;
-    this.lastModified = lastModified;
-    this.lastModifiedBy = lastModifiedBy;
-  }
-
-  function parseBranchName(branchName) {
-    var result = branchName.split("/");
-    if (result.length == 3) {
-      return [result[0], result[2]];
-    } else {
-      return ['local', result[0]];
+    var remotes = [];
+    for (var r in remotesRaw) {
+      var remote = new Remote(r);
+      remote.branches = remotesRaw[r];
+      remotes.push(remote);
     }
-  }
 
-  console.log("final repos = " + JSON.stringify(repos));
-  return repos;
-}
+    function Remote(name) {
+      this.name = name;
+      this.branches = [];
+    }
+
+    function Branch(branch, revision, lastModified, lastModifiedBy) {
+      this.repo = repo;
+      this.branch = branch;
+      this.revision = revision;
+      this.lastModified = lastModified;
+      this.lastModifiedBy = lastModifiedBy;
+    }
+
+    function parseBranchName(branchName) {
+      var result = branchName.split("/");
+      if (result.length >= 3 && result[0] == "remotes") {
+	return [result[1], result[2]];
+      } else {
+	return ["", result[0]];
+      }
+    }
+
+    console.log("final remotes = " + JSON.stringify(remotes));
+    return remotes;
+  }
+});
 
 todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
-  // console.log("location = " + JSON.stringify($location));
-
-  $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $location.search()['revid'])
+  var repo = $location.search()['repo'];
+  var revision = $location.search()['revision'];
+  $http.get(window.location.protocol + "//" + window.location.host +
+      "/revision?repo="+ repo + "&revision=" + revision)
     .success(function(response) {$scope.revisions= processTodoListResponse(response);});
 
    function processTodoListResponse(response) {
@@ -106,6 +126,7 @@ todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
     }
 
     function Todo(revision, fileName, lineNumber, content) {
+      this.repo = repo;
       this.revision = revision;
       this.fileName = fileName;
       this.lineNumber = lineNumber;
@@ -117,10 +138,13 @@ todoTrackerApp.controller("listTodos", function($scope,$http,$location) {
 });
 
 todoTrackerApp.controller("listTodosPaths", function($scope,$http,$location) {
-  $http.get(window.location.protocol + "//" + window.location.host + "/revision?id=" + $location.search()['revid'])
+  var repo = $location.search()['repo'];
+  var revision = $location.search()['revision'];
+  $http.get(window.location.protocol + "//" + window.location.host +
+      "/revision?repo="+ repo + "&revision=" + revision)
     .success(function(response) {$scope.filenames = processTodoListPathsResponse(response);});
 
-   function processTodoListPathsResponse(response) {
+  function processTodoListPathsResponse(response) {
     var todosObj = response;
     var todosMap = {};
 
@@ -150,6 +174,7 @@ todoTrackerApp.controller("listTodosPaths", function($scope,$http,$location) {
 
 
     function Todo(revision, fileName, lineNumber, content) {
+      this.repo = repo;
       this.revision = revision;
       this.fileName = fileName;
       this.lineNumber = lineNumber;
@@ -161,13 +186,15 @@ todoTrackerApp.controller("listTodosPaths", function($scope,$http,$location) {
 });
 
 todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
-  var revision = $location.search()['revid'];
+  var repo = $location.search()['repo'];
+  var revision = $location.search()['revision'];
   var fileName = $location.search()['fn'];
   var lineNumber = $location.search()['ln'];
   // TODO: Pass in the number of lines above and below the TODO to display
   // This needs the JSON file to provide the informaiton.
   $http.get(window.location.protocol + "//" + window.location.host +
-      "/todo?revision=" + revision + "&fileName=" + fileName + "&lineNumber=" + lineNumber)
+      "/todo?repo=" + repo + "&revision=" + revision +
+      "&fileName=" + fileName + "&lineNumber=" + lineNumber)
     .success(function(response) {$scope.todoDetails = processTodoDetailsResponse(response);});
 
   function processTodoDetailsResponse(response) {
@@ -212,12 +239,13 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     function getRevisionLink(revision) {
       // the # sign in the URL is to make Angularjs to recoginize QS params in
       // $location.search(). It is a workaround for a bug in Angularjs.
-      return window.location.protocol + "//" + window.location.host + "/ui/list_todos.html#?revid=" + revision;
+      return window.location.protocol + "//" + window.location.host +
+	  "/ui/list_todos.html#?repo=" + repo + "&revision=" + revision;
     }
 
     function getFileInRepoLink(revision, fileName) {
-      return window.location.protocol + "//" + window.location.host + "/browse?revision=" + revision +
-          "&fileName=" + fileName;
+      return window.location.protocol + "//" + window.location.host +
+	  "/browse?repo=" + repo + "&revision=" + revision + "&fileName=" + fileName;
     }
 
     function getCodeLineInRepoLink(revision, fileName, lineNumber) {

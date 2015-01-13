@@ -86,6 +86,20 @@ func (db Dashboard) readRepoRevisionAndPathParams(r *http.Request) (*repo.Reposi
 	return repository, revision, fileName, err
 }
 
+// Serve the main page.
+func (db Dashboard) ServeMainPage(w http.ResponseWriter, r *http.Request) {
+	if len(db.Repositories) == 1 {
+		for repoId := range db.Repositories {
+			http.Redirect(w, r,
+				"/ui/list_branches.html#?repo="+repoId,
+				http.StatusMovedPermanently)
+			return
+		}
+	} else {
+		http.Redirect(w, r, "/ui/list_repos.html", http.StatusMovedPermanently)
+	}
+}
+
 // Serve the aliases JSON for a repo.
 func (db Dashboard) ServeAliasesJson(w http.ResponseWriter, r *http.Request) {
 	repositoryPtr, err := db.readRepoParam(r)
@@ -105,25 +119,13 @@ func (db Dashboard) ServeAliasesJson(w http.ResponseWriter, r *http.Request) {
 // Serve the JSON for a single revision.
 // The ID of the revision is taken from the URL parameters of the request.
 func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
-	repositoryPtr, err := db.readRepoParam(r)
+	repositoryPtr, revision, err := db.readRepoAndRevisionParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
 	repository := *repositoryPtr
-	revisionParam := r.URL.Query().Get("id")
-	if revisionParam == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "Missing required parameter 'id'")
-		return
-	}
-	revision, err := repository.ValidateRevision(revisionParam)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid revision: %s", revisionParam)
-		return
-	}
 	err = repo.WriteTodosJson(
 		w, repository, revision, db.TodoRegex, db.ExcludePaths)
 	if err != nil {
