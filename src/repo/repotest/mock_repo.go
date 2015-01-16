@@ -25,6 +25,14 @@ type MockRepository struct {
 	RevisionTodos map[string][]repo.Line
 }
 
+func (repository MockRepository) GetRepoId() string {
+	return "repoID"
+}
+
+func (repository MockRepository) GetRepoPath() string {
+	return "~/repo/path"
+}
+
 func (repository MockRepository) ListBranches() []repo.Alias {
 	return repository.Aliases
 }

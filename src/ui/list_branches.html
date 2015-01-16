@@ -39,14 +39,19 @@ limitations under the License.
       </div>
     </div>
   </div>
-  <div class="container" ng-repeat="repo in repositories">
+  <div class="container" ng-repeat="remote in remotes">
     <!-- Header to show branches -->
-    <div class="row header-bar-lighter">
+    <div class="row header-bar-lighter" ng-if="remote.name">
       <div class="col-md-1">
-        <b>Repository:</b>
+        <b>Remote:</b>
       </div>
       <div class="col-md-11">
-        {{repo.repository}}
+        {{remote.name}}
+      </div>
+    </div>
+    <div class="row header-bar-lighter" ng-if="!remote.name">
+      <div class="col-md-1">
+        <b>Local:</b>
       </div>
     </div>
 
@@ -67,14 +72,14 @@ limitations under the License.
           </div>
         </div>
         <!-- List each branch -->
-        <div class="row alternate_row" ng-repeat="branch in repo.branches">
+        <div class="row alternate_row" ng-repeat="branch in remote.branches">
           <div class="col-md-3">
             {{branch.branch}}
           </div>
           <div class="col-md-4">
             {{branch.revision}} <br>
-            <a href="list_todos_paths.html#?revid={{branch.revision}}">[list by file]</a>
-            <a href="list_todos.html#?revid={{branch.revision}}">[list by revision]</a>
+            <a href="list_todos_paths.html#?repo={{branch.repo}}&revision={{branch.revision}}">[list by file]</a>
+            <a href="list_todos.html#?repo={{branch.repo}}&revision={{branch.revision}}">[list by revision]</a>
           </div>
           <div class="col-md-5">
             <div ng-show="branch.lastModified != null && branch.lastModified != ''">

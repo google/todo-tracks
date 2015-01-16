@@ -41,9 +41,9 @@ And then launch it:
     bin/todos
 
 <!--
-TODO(ojarjur): Support multiple git repos under the current directory.
+TODO(ojarjur): Add support for hg repos.
 -->
-The tracker requires that it be started in the directory of a git repo, and it only shows the TODOs from that repo.
+The tracker requires that it be started in a directory that contains at least one git repo, and it shows the TODOs from every git repo under that directory.
 
 The UI for the tracker is a webserver which defaults to listening on port 8080. To use a different port, pass it as an argument to the "--port" flag:
 

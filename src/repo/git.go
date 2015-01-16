@@ -18,6 +18,7 @@ package repo
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"log"
@@ -48,12 +49,14 @@ type todosCacheEntry struct {
 }
 
 type gitRepository struct {
+	DirPath            string
 	BlobTodosCache     map[string]todosCacheEntry
 	RevisionTodosCache map[Revision]todosCacheEntry
 }
 
-func NewGitRepository(todoRegex, excludePaths string) Repository {
+func NewGitRepository(dirPath, todoRegex, excludePaths string) Repository {
 	repository := &gitRepository{
+		DirPath:            dirPath,
 		BlobTodosCache:     make(map[string]todosCacheEntry),
 		RevisionTodosCache: make(map[Revision]todosCacheEntry),
 	}
@@ -66,7 +69,16 @@ func NewGitRepository(todoRegex, excludePaths string) Repository {
 	return repository
 }
 
-func runGitCommand(cmd *exec.Cmd) (string, error) {
+func (repository *gitRepository) GetRepoId() string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(repository.DirPath)))
+}
+
+func (repository *gitRepository) GetRepoPath() string {
+	return repository.DirPath
+}
+
+func (repository *gitRepository) runGitCommand(cmd *exec.Cmd) (string, error) {
+	cmd.Dir = repository.DirPath
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -74,8 +86,8 @@ func runGitCommand(cmd *exec.Cmd) (string, error) {
 	return strings.Trim(string(out), " \n"), nil
 }
 
-func runGitCommandOrDie(cmd *exec.Cmd) string {
-	out, err := runGitCommand(cmd)
+func (repository *gitRepository) runGitCommandOrDie(cmd *exec.Cmd) string {
+	out, err := repository.runGitCommand(cmd)
 	if err != nil {
 		log.Print(cmd.Args)
 		log.Print(out)
@@ -95,7 +107,7 @@ func splitCommandOutputLine(line string) []string {
 }
 
 func (repository *gitRepository) ListBranches() []Alias {
-	out := runGitCommandOrDie(
+	out := repository.runGitCommandOrDie(
 		exec.Command("git", "branch", "-av", "--list", "--abbrev=40", "--no-color"))
 	lines := strings.Split(out, "\n")
 	aliases := make([]Alias, 0)
@@ -112,7 +124,7 @@ func (repository *gitRepository) ListBranches() []Alias {
 }
 
 func (repository *gitRepository) ReadRevisionContents(revision Revision) *RevisionContents {
-	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	out := repository.runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
 	lines := strings.Split(out, "\n")
 	paths := make([]string, 0)
 	for _, line := range lines {
@@ -124,22 +136,22 @@ func (repository *gitRepository) ReadRevisionContents(revision Revision) *Revisi
 }
 
 func (repository *gitRepository) getSubject(revision Revision) string {
-	return runGitCommandOrDie(exec.Command(
+	return repository.runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%s", "-s"))
 }
 
 func (repository *gitRepository) getAuthorName(revision Revision) string {
-	return runGitCommandOrDie(exec.Command(
+	return repository.runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%an", "-s"))
 }
 
 func (repository *gitRepository) getAuthorEmail(revision Revision) string {
-	return runGitCommandOrDie(exec.Command(
+	return repository.runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%ae", "-s"))
 }
 
 func (repository *gitRepository) getTimestamp(revision Revision) int64 {
-	out := runGitCommandOrDie(exec.Command(
+	out := repository.runGitCommandOrDie(exec.Command(
 		"git", "show", string(revision), "--format=%ct", "-s"))
 	timestamp, err := strconv.ParseInt(out, 10, 64)
 	if err != nil {
@@ -159,7 +171,7 @@ func (repository *gitRepository) ReadRevisionMetadata(revision Revision) Revisio
 }
 
 func (repository *gitRepository) getFileBlobOrDie(revision Revision, path string) string {
-	out := runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+	out := repository.runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
 		if strings.Contains(line, path) {
@@ -283,7 +295,7 @@ func (repository *gitRepository) LoadFileTodos(
 func (repository *gitRepository) asyncLoadFileTodos(
 	revision Revision, path, blob, todoRegex string, todosChannel chan []Line) {
 	if !repository.BlobTodosCache[blob].Present {
-		raw := runGitCommandOrDie(exec.Command("git", "show", blob))
+		raw := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
 		rawLines := strings.Split(raw, "\n")
 		blobTodos := make([]Line, 0)
 		for lineNumber, lineContents := range rawLines {
@@ -291,7 +303,7 @@ func (repository *gitRepository) asyncLoadFileTodos(
 			if err == nil && matched {
 				// git-blame numbers lines starting from 1 rather than 0
 				gitLineNumber := lineNumber + 1
-				out := runGitCommandOrDie(exec.Command(
+				out := repository.runGitCommandOrDie(exec.Command(
 					"git", "blame", "--root", "--line-porcelain",
 					"-L", fmt.Sprintf("%d,+1", gitLineNumber),
 					string(revision), "--", path))
@@ -308,7 +320,7 @@ func (repository *gitRepository) asyncLoadFileTodos(
 
 func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
 	blob := repository.getFileBlobOrDie(revision, path)
-	out := runGitCommandOrDie(exec.Command("git", "show", blob))
+	out := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
 	lines := strings.Split(out, "\n")
 	if startLine < 1 {
 		startLine = 1
@@ -343,8 +355,9 @@ func gitHubBrowseSuffix(revision Revision, path string, lineNumber int) string {
 }
 
 func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, lineNumber int) string {
-	rawUrl := fmt.Sprintf("/raw?revision=%s&fileName=%s", string(revision), url.QueryEscape(path))
-	out, err := exec.Command("git", "remote", "-v").Output()
+	rawUrl := fmt.Sprintf("/raw?repo=%s&revision=%s&fileName=%s",
+		repository.GetRepoId(), string(revision), url.QueryEscape(path))
+	out, err := repository.runGitCommand(exec.Command("git", "remote", "-v"))
 	if err != nil {
 		return rawUrl
 	}
@@ -373,7 +386,8 @@ func (repository *gitRepository) ValidateRevision(revisionString string) (Revisi
 	if !hashRegexp.MatchString(revisionString) {
 		return Revision(""), errors.New(fmt.Sprintf("Invalid hash format: %s", revisionString))
 	}
-	_, err := runGitCommand(exec.Command("git", "ls-tree", "--name-only", revisionString))
+	_, err := repository.runGitCommand(
+		exec.Command("git", "ls-tree", "--name-only", revisionString))
 	if err != nil {
 		return Revision(""), err
 	}
@@ -381,7 +395,8 @@ func (repository *gitRepository) ValidateRevision(revisionString string) (Revisi
 }
 
 func (repository *gitRepository) ValidatePathAtRevision(revision Revision, path string) error {
-	out, err := runGitCommand(exec.Command("git", "ls-tree", "-r", "--name-only", string(revision)))
+	out, err := repository.runGitCommand(
+		exec.Command("git", "ls-tree", "-r", "--name-only", string(revision)))
 	if err != nil {
 		return err
 	}

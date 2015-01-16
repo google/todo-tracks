@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"repo"
 	"resources"
 	"strings"
@@ -65,11 +67,12 @@ func serveStaticContent(w http.ResponseWriter, resourceName string) {
 	w.Write(resourceContents)
 }
 
-func serveRepoDetails(dashboard dashboard.Dashboard) {
+func serveDashboard(dashboard dashboard.Dashboard) {
 	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.URL.Path[4:]
 		serveStaticContent(w, resourceName)
 	})
+	http.HandleFunc("/repos", dashboard.ServeReposJson)
 	http.HandleFunc("/aliases", dashboard.ServeAliasesJson)
 	http.HandleFunc("/revision", dashboard.ServeRevisionJson)
 	http.HandleFunc("/todo", dashboard.ServeTodoJson)
@@ -79,17 +82,39 @@ func serveRepoDetails(dashboard dashboard.Dashboard) {
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "ok")
 		})
-	http.HandleFunc("/",
-		func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/ui/list_branches.html", http.StatusMovedPermanently)
-		})
+	http.HandleFunc("/", dashboard.ServeMainPage)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+// Find all local repositories under the current working directory.
+func getLocalRepos() (map[string]*repo.Repository, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	repos := make(map[string]*repo.Repository)
+	filepath.Walk(cwd, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && info.Name() == ".git" {
+			gitRepo := repo.NewGitRepository(path, todoRegex, excludePaths)
+			repos[gitRepo.GetRepoId()] = &gitRepo
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	return repos, nil
 }
 
 func main() {
 	flag.Parse()
-	// TODO: Add some sanity checking that the binary was started inside of a git repo directory.
-	gitRepository := repo.NewGitRepository(todoRegex, excludePaths)
-	dashboard := dashboard.Dashboard{gitRepository, todoRegex, excludePaths}
-	serveRepoDetails(dashboard)
+	repos, err := getLocalRepos()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	if repos == nil {
+		log.Fatal("Unable to find any local repositories under the current directory")
+	}
+	serveDashboard(dashboard.Dashboard{repos, todoRegex, excludePaths})
 }
