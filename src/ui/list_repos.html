@@ -40,19 +40,13 @@ limitations under the License.
     </div>
     <div class="container">
       <div class="row header-bar-lighter">
-        <div class="col-md-1">
+        <div class="col-md-12">
           <b>Path:</b>
         </div>
       </div>
-      <div class="row">
-        <div class="col-md-1">
-        </div>
-        <div class="col-md-11">
-          <div class="row alternate_row" ng-repeat="repo in repositories">
-            <div class="col-md-4">
-              <a href="list_branches.html#?repo={{repo.id}}">{{repo.path}}</a>
-            </div>
-          </div>
+      <div class="row alternate_row" ng-repeat="repo in repositories">
+        <div class="col-md-12">
+          <a href="list_branches.html#?repo={{repo.id}}">{{repo.path}}</a>
         </div>
       </div>
     </div>

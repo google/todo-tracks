@@ -97,10 +97,22 @@ func getLocalRepos() (map[string]*repo.Repository, error) {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() && info.Name() == ".git" {
-			gitRepo := repo.NewGitRepository(path, todoRegex, excludePaths)
-			repos[gitRepo.GetRepoId()] = &gitRepo
-			return filepath.SkipDir
+		if info.IsDir() {
+			dir, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			children, err := dir.Readdir(-1)
+			if err != nil {
+				return err
+			}
+			for _, child := range children {
+				if child.IsDir() && child.Name() == ".git" {
+					gitRepo := repo.NewGitRepository(path, todoRegex, excludePaths)
+					repos[gitRepo.GetRepoId()] = &gitRepo
+					return filepath.SkipDir
+				}
+			}
 		}
 		return nil
 	})
