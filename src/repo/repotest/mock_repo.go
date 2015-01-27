@@ -37,6 +37,10 @@ func (repository MockRepository) ListBranches() []repo.Alias {
 	return repository.Aliases
 }
 
+func (repository MockRepository) IsAncestor(ancestor, descendant repo.Revision) bool {
+	return false
+}
+
 func (repository MockRepository) ReadRevisionContents(revision repo.Revision) *repo.RevisionContents {
 	return &repo.RevisionContents{
 		Revision: revision,
@@ -60,6 +64,10 @@ func (repository MockRepository) LoadRevisionTodos(revision repo.Revision, todoR
 
 func (repository MockRepository) LoadFileTodos(revision repo.Revision, path string, todoRegex string) []repo.Line {
 	return make([]repo.Line, 0)
+}
+
+func (repository MockRepository) FindClosingRevisions(todoId repo.TodoId) []repo.Revision {
+	return nil
 }
 
 func (repository MockRepository) GetBrowseUrl(revision repo.Revision, path string, lineNumber int) string {
