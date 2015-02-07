@@ -156,6 +156,12 @@ func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
 		return
 	}
+	err = repository.ValidateLineNumberInPathAtRevision(revision, fileName, lineNumber)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, err.Error())
+		return
+	}
 	todoId := repo.TodoId{
 		Revision:   revision,
 		FileName:   fileName,
@@ -182,6 +188,12 @@ func (db Dashboard) ServeBrowseRedirect(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
+		return
+	}
+	err = repository.ValidateLineNumberInPathAtRevision(revision, fileName, lineNumber)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, err.Error())
 		return
 	}
 	http.Redirect(w, r, repository.GetBrowseUrl(

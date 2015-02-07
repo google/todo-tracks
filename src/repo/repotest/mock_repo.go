@@ -76,3 +76,8 @@ func (repository MockRepository) ValidateRevision(revisionString string) (repo.R
 func (repository MockRepository) ValidatePathAtRevision(revision repo.Revision, path string) error {
 	return nil
 }
+
+func (repository MockRepository) ValidateLineNumberInPathAtRevision(
+	revision repo.Revision, path string, lineNumber int) error {
+	return nil
+}

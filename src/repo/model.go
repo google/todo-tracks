@@ -83,8 +83,14 @@ type Repository interface {
 	ValidateRevision(revisionString string) (Revision, error)
 
 	// Check that the given path is in the given revision.
-	// This is intended for user input validation.
+	// This is intended for user input validation, and assumes that ValidateRevision
+	// has already been called.
 	ValidatePathAtRevision(revision Revision, path string) error
+
+	// Check that the given line number exists for the given path in the given revision.
+	// This is intended for user input validation, and assumes that ValidatePathAtRevision
+	// has already been called.
+	ValidateLineNumberInPathAtRevision(revision Revision, path string, lineNumber int) error
 }
 
 func WriteJson(w io.Writer, repository Repository) error {
