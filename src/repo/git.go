@@ -408,3 +408,16 @@ func (repository *gitRepository) ValidatePathAtRevision(revision Revision, path 
 	}
 	return errors.New(fmt.Sprintf("Path '%s' not found at revision %s", path, string(revision)))
 }
+
+func (repository *gitRepository) ValidateLineNumberInPathAtRevision(
+	revision Revision, path string, lineNumber int) error {
+	blob := repository.getFileBlobOrDie(revision, path)
+	out := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
+	lines := strings.Split(out, "\n")
+	if len(lines) < lineNumber {
+		return errors.New(fmt.Sprintf(
+			"Line #%d, not found at path %s in revision %s",
+			lineNumber, path, string(revision)))
+	}
+	return nil
+}
