@@ -59,9 +59,12 @@ type TodoDetails struct {
 	Id               TodoId
 	RevisionMetadata RevisionMetadata
 	Context          string
-	// TODO(ojarjur): Add a list of branches from which the TODO is missing (not yet added)
-	// TODO(ojarjur): Add a list of branches that have the TODO
-	// TODO(ojarjur): Add a list of branches from which the TODO has been removed
+}
+
+type TodoStatus struct {
+	BranchesMissing []Alias
+	BranchesPresent []Alias
+	BranchesRemoved []Alias
 }
 
 type Repository interface {
@@ -71,11 +74,14 @@ type Repository interface {
 	GetRepoPath() string
 
 	ListBranches() []Alias
+	IsAncestor(ancestor, descendant Revision) bool
 	ReadRevisionContents(revision Revision) *RevisionContents
 	ReadRevisionMetadata(revision Revision) RevisionMetadata
 	ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string
 	LoadRevisionTodos(revision Revision, todoRegex, excludePaths string) []Line
 	LoadFileTodos(revision Revision, path string, todoRegex string) []Line
+	FindClosingRevisions(todoId TodoId) []Revision
+
 	GetBrowseUrl(revision Revision, path string, lineNumber int) string
 
 	// Check that the given string is a valid revision.
@@ -105,11 +111,40 @@ func WriteJson(w io.Writer, repository Repository) error {
 func LoadTodoDetails(repository Repository, todoId TodoId, linesBefore int, linesAfter int) *TodoDetails {
 	startLine := todoId.LineNumber - linesBefore
 	endLine := todoId.LineNumber + linesAfter + 1
-	context := repository.ReadFileSnippetAtRevision(todoId.Revision, todoId.FileName, startLine, endLine)
+	context := repository.ReadFileSnippetAtRevision(
+		todoId.Revision, todoId.FileName, startLine, endLine)
 	return &TodoDetails{
 		Id:               todoId,
 		RevisionMetadata: repository.ReadRevisionMetadata(todoId.Revision),
 		Context:          context,
+	}
+}
+
+func LoadTodoStatus(repository Repository, todoId TodoId) *TodoStatus {
+	closingRevs := repository.FindClosingRevisions(todoId)
+	missing := make([]Alias, 0)
+	present := make([]Alias, 0)
+	removed := make([]Alias, 0)
+Branches:
+	for _, alias := range repository.ListBranches() {
+		if alias.Revision == todoId.Revision {
+			present = append(present, alias)
+		} else if repository.IsAncestor(todoId.Revision, alias.Revision) {
+			for _, closingRev := range closingRevs {
+				if repository.IsAncestor(closingRev, alias.Revision) {
+					removed = append(removed, alias)
+					continue Branches
+				}
+			}
+			present = append(present, alias)
+		} else {
+			missing = append(missing, alias)
+		}
+	}
+	return &TodoStatus{
+		BranchesMissing: missing,
+		BranchesPresent: present,
+		BranchesRemoved: removed,
 	}
 }
 
@@ -125,6 +160,15 @@ func WriteTodosJson(w io.Writer, repository Repository, revision Revision, todoR
 func WriteTodoDetailsJson(w io.Writer, repository Repository, todoId TodoId) error {
 	// TODO: Make the lines before and after a parameter.
 	bytes, err := json.Marshal(LoadTodoDetails(repository, todoId, 5, 5))
+	if err != nil {
+		return err
+	}
+	w.Write(bytes)
+	return nil
+}
+
+func WriteTodoStatusDetailsJson(w io.Writer, repository Repository, todoId TodoId) error {
+	bytes, err := json.Marshal(LoadTodoStatus(repository, todoId))
 	if err != nil {
 		return err
 	}

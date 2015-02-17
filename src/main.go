@@ -76,6 +76,7 @@ func serveDashboard(dashboard dashboard.Dashboard) {
 	http.HandleFunc("/aliases", dashboard.ServeAliasesJson)
 	http.HandleFunc("/revision", dashboard.ServeRevisionJson)
 	http.HandleFunc("/todo", dashboard.ServeTodoJson)
+	http.HandleFunc("/todoStatus", dashboard.ServeTodoStatusJson)
 	http.HandleFunc("/browse", dashboard.ServeBrowseRedirect)
 	http.HandleFunc("/raw", dashboard.ServeFileContents)
 	http.HandleFunc("/_ah/health",

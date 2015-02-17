@@ -24,8 +24,6 @@ limitations under the License.
   <title>TODO Tracker -- TODO Details</title>
 </head>
 <body ng-app="todoTrackerApp">
-  <!-- or "container-fluid" -->
-  <div ng-controller="todoDetails">
   <div class="container">
     <div class="row">
       <div class="col-md-12">
@@ -46,19 +44,65 @@ limitations under the License.
     </div>
     <!-- List each detail info-->
     <!-- TODO(kleung): Treat the context specially, and include buttons to increase the number of lines above/below the todo to display -->
-    <div class="row alternate_row" ng-repeat="detail in todoDetails">
-      <div class="col-md-2">
-        {{detail.key}}
+    <div ng-controller="todoDetails">
+      <div class="row alternate_row" ng-repeat="detail in todoDetails">
+        <div class="col-md-2">
+          {{detail.key}}
+        </div>
+        <div class="col-md-10">
+          <a href="{{detail.link}}" ng-if="detail.hasLink">
+            <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
+            <span ng-if="!detail.htmlPre">{{detail.value}}</span>
+          </a>
+          <span ng-if="!detail.hasLink">
+            <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
+            <span ng-if="!detail.htmlPre">{{detail.value}}</span>
+          </span>
+        </div>
       </div>
-      <div class="col-md-10">
-        <a href="{{detail.link}}" ng-if="detail.hasLink">
-          <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
-          <span ng-if="!detail.htmlPre">{{detail.value}}</span>
-        </a>
-        <span ng-if="!detail.hasLink">
-          <pre class="nobg-noborder" ng-if="detail.htmlPre">{{detail.value}}</pre>
-          <span ng-if="!detail.htmlPre">{{detail.value}}</span>
-        </span>
+    </div>
+    <div ng-controller="todoStatus">
+      <div class="row header-bar-lighter" ng-if="todoStatus.present">
+        <div class="col-md-12">
+          <b>Present In:</b>
+        </div>
+      </div>
+      <div class="row alternate_row" ng-repeat="branch in todoStatus.present">
+        <div class="col-md-2">
+        </div>
+        <div class="col-md-10">
+          <a href="{{branch.link}}">
+            <span>{{branch.name}}</span>
+          </a>
+        </div>
+      </div>
+      <div class="row header-bar-lighter" ng-if="todoStatus.removed">
+        <div class="col-md-12">
+          <b>Removed In:</b>
+        </div>
+      </div>
+      <div class="row alternate_row" ng-repeat="branch in todoStatus.removed">
+        <div class="col-md-2">
+        </div>
+        <div class="col-md-10">
+          <a href="{{branch.link}}">
+            <span>{{branch.name}}</span>
+          </a>
+        </div>
+      </div>
+      <div class="row header-bar-lighter" ng-if="todoStatus.missing">
+        <div class="col-md-12">
+          <b>Missing In:</b>
+        </div>
+      </div>
+      <div class="row alternate_row" ng-repeat="branch in todoStatus.missing">
+        <div class="col-md-2">
+        </div>
+        <div class="col-md-10">
+          <a href="{{branch.link}}">
+            <span>{{branch.name}}</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>

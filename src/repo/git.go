@@ -123,6 +123,13 @@ func (repository *gitRepository) ListBranches() []Alias {
 	return aliases
 }
 
+func (repository *gitRepository) IsAncestor(ancestor, descendant Revision) bool {
+	_, err := repository.runGitCommand(
+		exec.Command("git", "merge-base", "--is-ancestor",
+			string(ancestor), string(descendant)))
+	return err == nil
+}
+
 func (repository *gitRepository) ReadRevisionContents(revision Revision) *RevisionContents {
 	out := repository.runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
 	lines := strings.Split(out, "\n")
@@ -170,17 +177,27 @@ func (repository *gitRepository) ReadRevisionMetadata(revision Revision) Revisio
 	}
 }
 
-func (repository *gitRepository) getFileBlobOrDie(revision Revision, path string) string {
-	out := repository.runGitCommandOrDie(exec.Command("git", "ls-tree", "-r", string(revision)))
+func (repository *gitRepository) getFileBlob(revision Revision, path string) (string, error) {
+	out, err := repository.runGitCommand(exec.Command("git", "ls-tree", "-r", string(revision)))
+	if err != nil {
+		return "", err
+	}
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
 		if strings.Contains(line, path) {
 			lineParts := strings.Split(strings.Replace(line, "\t", " ", -1), " ")
-			return lineParts[2]
+			return lineParts[2], nil
 		}
 	}
-	log.Fatal("Failed to lookup blob hash for " + path)
-	return ""
+	return "", errors.New("Failed to lookup blob hash for " + path)
+}
+
+func (repository *gitRepository) getFileBlobOrDie(revision Revision, path string) string {
+	blob, err := repository.getFileBlob(revision, path)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return blob
 }
 
 func parseBlameOutputOrDie(fileName string, out string) []Line {
@@ -338,6 +355,38 @@ func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, pa
 		buffer.WriteString("\n")
 	}
 	return buffer.String()
+}
+
+func (repository *gitRepository) readTodoContents(todoId TodoId) string {
+	blob := repository.getFileBlobOrDie(todoId.Revision, todoId.FileName)
+	out := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
+	lines := strings.Split(out, "\n")
+	return lines[todoId.LineNumber-1]
+}
+
+func (repository *gitRepository) FindClosingRevisions(todoId TodoId) []Revision {
+	results := make([]Revision, 0)
+	contents := repository.readTodoContents(todoId)
+	args := []string{"log", "--pretty=oneline", "--no-abbrev-commit", "--no-color", fmt.Sprintf("-S%s", contents), "^" + string(todoId.Revision)}
+	for _, alias := range repository.ListBranches() {
+		if alias.Revision != todoId.Revision {
+			args = append(args, string(alias.Revision))
+		}
+	}
+	out := repository.runGitCommandOrDie(exec.Command("git", args...))
+	lines := strings.Split(out, "\n")
+	for _, entry := range lines {
+		if len(entry) > 40 {
+			revision := Revision(strings.Split(entry, " ")[0])
+			raw := repository.runGitCommandOrDie(exec.Command(
+				"git", "show", "--no-color", string(revision)))
+			// TODO(ojarjur): Exclude revisions that are later rolled back.
+			if strings.Contains(raw, "-"+contents) && !strings.Contains(raw, "+"+contents) {
+				results = append(results, revision)
+			}
+		}
+	}
+	return results
 }
 
 func isGitHubHttpsUrl(remoteUrl string) bool {

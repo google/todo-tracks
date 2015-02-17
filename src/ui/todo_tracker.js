@@ -185,6 +185,13 @@ todoTrackerApp.controller("listTodosPaths", function($scope,$http,$location) {
   }
 });
 
+function getRevisionLink(repo, revision) {
+  // the # sign in the URL is to make Angularjs to recoginize QS params in
+  // $location.search(). It is a workaround for a bug in Angularjs.
+  return window.location.protocol + "//" + window.location.host +
+      "/ui/list_todos_paths.html#?repo=" + repo + "&revision=" + revision;
+}
+
 todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
   var repo = $location.search()['repo'];
   var revision = $location.search()['revision'];
@@ -202,7 +209,7 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     var todoDetails  = [];
 
     todoDetails.push(new TodoDetail("Revision", detailsObj.Id.Revision, true,
-          getRevisionLink(detailsObj.Id.Revision)));
+          getRevisionLink(repo, detailsObj.Id.Revision)));
     todoDetails.push(new TodoDetail("File Name", detailsObj.Id.FileName, true,
           getFileInRepoLink(detailsObj.Id.Revision, detailsObj.Id.FileName)));
     todoDetails.push(new TodoDetail("Line Number", detailsObj.Id.LineNumber, true,
@@ -218,7 +225,6 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     todoDetails.push(new TodoDetail("Subject", detailsObj.RevisionMetadata.Subject, false, ""));
     // TODO: Display this with syntax highlighting and the TODO line highlighted.
     todoDetails.push(new TodoDetail("Context", detailsObj.Context, false, "", true));
-    // TODO: Add details for the list of branches the todo is missing from, added to, and removed from
 
     function TodoDetail(key, value, hasLink, link, htmlPre) {
       this.key = key;
@@ -227,20 +233,6 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
       this.link = link;
       // Whether to use <pre></pre> on this detail field.
       this.htmlPre = htmlPre == null ? false : htmlPre;
-    }
-
-    function Todo(revision, fileName, lineNumber, content) {
-      this.revision = revision;
-      this.fileName = fileName;
-      this.lineNumber = lineNumber;
-      this.content = content;
-    }
-
-    function getRevisionLink(revision) {
-      // the # sign in the URL is to make Angularjs to recoginize QS params in
-      // $location.search(). It is a workaround for a bug in Angularjs.
-      return window.location.protocol + "//" + window.location.host +
-	  "/ui/list_todos.html#?repo=" + repo + "&revision=" + revision;
     }
 
     function getFileInRepoLink(revision, fileName) {
@@ -258,5 +250,52 @@ todoTrackerApp.controller("todoDetails", function($scope,$http,$location) {
     }
 
     return todoDetails;
+  }
+});
+
+todoTrackerApp.controller("todoStatus", function($scope,$http,$location) {
+  var repo = $location.search()['repo'];
+  var revision = $location.search()['revision'];
+  var fileName = $location.search()['fn'];
+  var lineNumber = $location.search()['ln'];
+  $http.get(window.location.protocol + "//" + window.location.host +
+      "/todoStatus?repo=" + repo + "&revision=" + revision +
+      "&fileName=" + fileName + "&lineNumber=" + lineNumber)
+    .success(function(response) {$scope.todoStatus = processTodoStatusResponse(response);});
+
+  function processTodoStatusResponse(response) {
+    var statusObj = response;
+    var todoStatus = {present: [], removed: [], missing: []};
+
+    for (var i in statusObj.BranchesPresent) {
+      var oneBranchRaw = statusObj.BranchesPresent[i];
+      var branch = oneBranchRaw.Branch;
+      var revision = oneBranchRaw.Revision;
+      var link = getRevisionLink(repo, revision);
+      todoStatus.present.push(new BranchDetail(branch, link));
+    }
+
+    for (var i in statusObj.BranchesRemoved) {
+      var oneBranchRaw = statusObj.BranchesRemoved[i];
+      var branch = oneBranchRaw.Branch;
+      var revision = oneBranchRaw.Revision;
+      var link = getRevisionLink(repo, revision);
+      todoStatus.removed.push(new BranchDetail(branch, link));
+    }
+
+    for (var i in statusObj.BranchesMissing) {
+      var oneBranchRaw = statusObj.BranchesMissing[i];
+      var branch = oneBranchRaw.Branch;
+      var revision = oneBranchRaw.Revision;
+      var link = getRevisionLink(repo, revision);
+      todoStatus.missing.push(new BranchDetail(branch, link));
+    }
+
+    function BranchDetail(name, link) {
+      this.name = name;
+      this.link = link;
+    }
+
+    return todoStatus;
   }
 });

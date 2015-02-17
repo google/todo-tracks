@@ -86,6 +86,23 @@ func (db Dashboard) readRepoRevisionAndPathParams(r *http.Request) (*repo.Reposi
 	return repository, revision, fileName, err
 }
 
+func (db Dashboard) readRepoRevisionPathAndLineNumberParams(r *http.Request) (*repo.Repository, repo.Revision, string, int, error) {
+	repository, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
+	if err != nil {
+		return nil, repo.Revision(""), "", 0, err
+	}
+	lineNumberParam := r.URL.Query().Get("lineNumber")
+	if lineNumberParam == "" {
+		return nil, repo.Revision(""), "", 0, errors.New("Missing the lineNumber param")
+	}
+	lineNumber, err := strconv.Atoi(lineNumberParam)
+	if err != nil {
+		return nil, repo.Revision(""), "", 0, fmt.Errorf("Invalid format for the lineNumber parameter: %v", err)
+	}
+	err = (*repository).ValidateLineNumberInPathAtRevision(revision, fileName, lineNumber)
+	return repository, revision, fileName, lineNumber, err
+}
+
 // Serve the main page.
 func (db Dashboard) ServeMainPage(w http.ResponseWriter, r *http.Request) {
 	if len(db.Repositories) == 1 {
@@ -137,37 +154,37 @@ func (db Dashboard) ServeRevisionJson(w http.ResponseWriter, r *http.Request) {
 // Serve the details JSON for a single TODO.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeTodoJson(w http.ResponseWriter, r *http.Request) {
-	repositoryPtr, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
+	repositoryPtr, revision, fileName, lineNumber, err := db.readRepoRevisionPathAndLineNumberParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, err.Error())
+		fmt.Fprint(w, err)
 		return
 	}
 	repository := *repositoryPtr
-	lineNumberParam := r.URL.Query().Get("lineNumber")
-	if lineNumberParam == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Missing the lineNumber param")
-		return
-	}
-	lineNumber, err := strconv.Atoi(lineNumberParam)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid format for the lineNumber parameter: %s", err)
-		return
-	}
-	err = repository.ValidateLineNumberInPathAtRevision(revision, fileName, lineNumber)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, err.Error())
-		return
-	}
 	todoId := repo.TodoId{
 		Revision:   revision,
 		FileName:   fileName,
 		LineNumber: lineNumber,
 	}
 	repo.WriteTodoDetailsJson(w, repository, todoId)
+}
+
+// Serve the status details JSON for a single TODO.
+// The revision, path, and line number are all taken from the URL parameters of the request.
+func (db Dashboard) ServeTodoStatusJson(w http.ResponseWriter, r *http.Request) {
+	repositoryPtr, revision, fileName, lineNumber, err := db.readRepoRevisionPathAndLineNumberParams(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err)
+		return
+	}
+	repository := *repositoryPtr
+	todoId := repo.TodoId{
+		Revision:   revision,
+		FileName:   fileName,
+		LineNumber: lineNumber,
+	}
+	repo.WriteTodoStatusDetailsJson(w, repository, todoId)
 }
 
 // Serve the redirect for browsing a file.

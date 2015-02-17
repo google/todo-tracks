@@ -11,7 +11,7 @@ Use cases:
 
 * List the TODOs in a branch.
 * Examine when a TODO was added, removed, and who added it.
-* (coming soon) Show which branches a TODO is in.
+* Show which branches a TODO is in.
 * (coming soon) Show a diff of the TODOs between two branches.
 
 ## Disclaimer
