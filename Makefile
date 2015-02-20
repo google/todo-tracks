@@ -7,7 +7,7 @@ test:	resource-constants
 resource-constants: fmt
 	go build -o bin/resource-constants utils/resource-constants.go
 	if [ ! -e "src/resources" ]; then mkdir src/resources; fi
-	bin/resource-constants --base_dir $(shell pwd) > src/resources/constants.go
+	bin/resource-constants --base_dir $(shell pwd)/src/ui/ > src/resources/constants.go
 
 fmt:
 	gofmt -w `find ./ -name '*.go'`

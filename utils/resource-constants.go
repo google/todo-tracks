@@ -14,73 +14,68 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Program resource-constants generates Go source files that embed resource files read at compile time.
+//
+// Usage:
+//   bin/resource-constants --base_dir <directory-with-static-files>/ > src/resources/constants.go
+//
+// Using the generated code:
+//   import "resources"
+//
+//   var fileContents = resources.Constants["fileName"]
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"go/format"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-var resourceFileExtensions = []string{".html", ".js", ".css"}
-var baseDir string
+var baseDir = flag.String("base_dir", "./", "Directory under which to look for resource files")
+var supportedExtensions = flag.String("supported_extensions", "html,js,css", "Comma-separated list of supported file extensions")
 
-func init() {
-	flag.StringVar(&baseDir, "base_dir", "./", "Directory under which to look for resource files")
-}
-
-func isResourceFileName(fileName string) bool {
-	for _, extension := range resourceFileExtensions {
-		if strings.HasSuffix(fileName, extension) {
+func isSupported(fileName string) bool {
+	for _, extension := range strings.Split(*supportedExtensions, ",") {
+		if strings.HasSuffix(fileName, "."+extension) {
 			return true
 		}
 	}
 	return false
 }
 
-type Resource struct {
-	Name  string
-	Bytes []byte
-}
-
-func loadResources(dir string, resources []Resource) []Resource {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, file := range files {
-		fullPath := fmt.Sprintf("%s%c%s", dir, os.PathSeparator, file.Name())
-		if file.IsDir() {
-			resources = loadResources(fullPath, resources)
-		} else {
-			fileName := file.Name()
-			if isResourceFileName(fileName) {
-				bytes, err := ioutil.ReadFile(fullPath)
-				if err != nil {
-					log.Fatal(err)
-				}
-				resources = append(resources, Resource{fileName, bytes})
-			}
-		}
-	}
-	return resources
-}
-
 func main() {
 	flag.Parse()
-	fmt.Printf("package resources\n\n")
-	fmt.Printf("var Constants = map[string][]byte{\n")
-	resources := make([]Resource, 0)
-	resources = loadResources(baseDir, resources)
-	for _, resource := range resources {
-		fmt.Printf("\t\t\"%s\": {", resource.Name)
-		for _, b := range resource.Bytes {
-			fmt.Printf(" %d,", b)
+	var buf bytes.Buffer
+	fmt.Fprintln(&buf, "package resources")
+	fmt.Fprintln(&buf, "var Constants = map[string][]byte{")
+	filepath.Walk(*baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-		fmt.Printf("},\n")
+		if !info.IsDir() && isSupported(path) {
+			fileName := path[len(*baseDir):]
+			bytes, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(&buf, "%q: {", fileName)
+			for _, b := range bytes {
+				fmt.Fprintf(&buf, " %d,", b)
+			}
+			fmt.Fprintln(&buf, "},")
+		}
+		return nil
+	})
+	fmt.Fprintln(&buf, "}")
+	src, err := format.Source(buf.Bytes())
+	if err != nil {
+		log.Fatalf("Invalid generated source: %v", err)
 	}
-	fmt.Printf("\t}\n")
+	fmt.Print(string(src))
 }
