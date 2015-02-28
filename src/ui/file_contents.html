@@ -16,10 +16,22 @@ limitations under the License.
 -->
 <html>
   <head>
-    <!-- TODO: Switch to using a proper CDN rather than reading from the SVN repo. -->
-    <script src="https://google-code-prettify.googlecode.com/svn/loader/run_prettify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/run_prettify.min.js"></script>
+<style>
+li.L0, li.L1, li.L2, li.L3, li.L5, li.L6, li.L7, li.L8
+{ list-style-type: decimal !important }
+
+pre.prettyprint
+{ background: #f9f9f9 !important }
+
+li.L0, li.L1, li.L2, li.L3, li.L4, li.L5, li.L6, li.L7, li.L8, li.L9
+{ background: #ffffff }
+
+li:nth-of-type({{.LineNumber}})
+{ background: #e0f0ff !important }
+</style>
   </head>
   <body>
-    <pre class="prettyprint"><code>{{.}}</code></pre>
+    <pre class="prettyprint linenums"><code id="contents">{{.Contents}}</code></pre>
   </body>
 </html>

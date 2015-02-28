@@ -404,8 +404,8 @@ func gitHubBrowseSuffix(revision Revision, path string, lineNumber int) string {
 }
 
 func (repository *gitRepository) GetBrowseUrl(revision Revision, path string, lineNumber int) string {
-	rawUrl := fmt.Sprintf("/raw?repo=%s&revision=%s&fileName=%s",
-		repository.GetRepoId(), string(revision), url.QueryEscape(path))
+	rawUrl := fmt.Sprintf("/raw?repo=%s&revision=%s&fileName=%s&lineNumber=%d",
+		repository.GetRepoId(), string(revision), url.QueryEscape(path), lineNumber)
 	out, err := repository.runGitCommand(exec.Command("git", "remote", "-v"))
 	if err != nil {
 		return rawUrl
