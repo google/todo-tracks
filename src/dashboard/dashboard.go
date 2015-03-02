@@ -217,6 +217,11 @@ func (db Dashboard) ServeBrowseRedirect(w http.ResponseWriter, r *http.Request) 
 		revision, fileName, lineNumber), http.StatusMovedPermanently)
 }
 
+type fileContents struct {
+	LineNumber int
+	Contents   string
+}
+
 // Serve the contents for a single file.
 // The revision, path, and line number are all taken from the URL parameters of the request.
 func (db Dashboard) ServeFileContents(w http.ResponseWriter, r *http.Request) {
@@ -226,7 +231,7 @@ func (db Dashboard) ServeFileContents(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
 	}
-	repositoryPtr, revision, fileName, err := db.readRepoRevisionAndPathParams(r)
+	repositoryPtr, revision, fileName, lineNumber, err := db.readRepoRevisionPathAndLineNumberParams(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, err.Error())
@@ -234,7 +239,9 @@ func (db Dashboard) ServeFileContents(w http.ResponseWriter, r *http.Request) {
 	}
 	repository := *repositoryPtr
 	contents := repository.ReadFileSnippetAtRevision(revision, fileName, 1, -1)
-	err = htmlTemplate.Execute(w, contents)
+	err = htmlTemplate.Execute(w, fileContents{
+		LineNumber: lineNumber,
+		Contents:   contents})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Server error \"%s\"", err)
