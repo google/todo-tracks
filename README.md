@@ -1,5 +1,7 @@
 # TODO Tracks
 
+[![Build Status](https://travis-ci.org/google/todo-tracks.svg?branch=master)](https://travis-ci.org/google/todo-tracks)
+
 TODO Tracks is a tool to let users get a handle on the various TODOs they or
 their teammate have added over time. This allows people to track progress by
 examining the TODOs remaining.
