@@ -1,0 +1,1 @@
+{"timestamp":"1425926810","targetRef":"refs/heads/master","reviewRef":"refs/pull/12/head","requester":"nicolai86","description":"Properly display branch names containing /\nIf you happen to follow git flow your branch names contain a /, in which\r\ncase only the prefix is being displayed, not the full branch name.\r\n\r\nThis tiny change properly displays branch names."}
