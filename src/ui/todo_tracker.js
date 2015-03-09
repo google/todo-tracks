@@ -80,9 +80,9 @@ todoTrackerApp.controller("listBranches", function($scope,$http,$location) {
     function parseBranchName(branchName) {
       var result = branchName.split("/");
       if (result.length >= 3 && result[0] == "remotes") {
-	return [result[1], result[2]];
+        return [result[1], result.slice(2).join('/')];
       } else {
-	return ["", result[0]];
+        return ["", result.join('/')];
       }
     }
 
