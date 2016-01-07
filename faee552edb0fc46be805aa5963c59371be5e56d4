@@ -5,3 +5,5 @@
 {"timestamp":"1449251889","v":0,"agent":"Jenkins(1.638) GitNotesJobLogger","url":"https://jenkins-dot-todo-tracks.appspot.com/job/todo-tracks/7/"}
 
 {"timestamp":"1449251906","v":0,"agent":"Jenkins(1.638) GitNotesJobLogger","url":"https://jenkins-dot-todo-tracks.appspot.com/job/todo-tracks/7/","status":"success"}
+
+{"timestamp":"1426616484","url":"https://travis-ci.org/google/todo-tracks/builds/54756729","status":"success","agent":"continuous-integration/travis-ci/push"}
