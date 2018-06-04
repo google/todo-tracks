@@ -159,7 +159,7 @@ func TestServeRevisionJson(t *testing.T) {
 		t.Error(err)
 	}
 	if len(returnedTodos) != 1 || returnedTodos[0] != mockTodo {
-		t.Errorf("Expected a singleton slice of %s, but saw %s", mockTodo, returnedTodos)
+		t.Errorf("Expected a singleton slice of %v, but saw %v", mockTodo, returnedTodos)
 	}
 }
 
@@ -268,6 +268,6 @@ func TestServeTodoJson(t *testing.T) {
 	if returnedTodo.Id.Revision != mockTodo.Revision ||
 		returnedTodo.Id.FileName != mockTodo.FileName ||
 		returnedTodo.Id.LineNumber != mockTodo.LineNumber {
-		t.Errorf("Expected %s, but saw %s", mockTodo, returnedTodo)
+		t.Errorf("Expected %v, but saw %v", mockTodo, returnedTodo)
 	}
 }
