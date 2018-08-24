@@ -17,16 +17,17 @@ limitations under the License.
 package dashboard_test
 
 import (
-	"dashboard"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"repo"
-	"repo/repotest"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/google/todo-tracks/dashboard"
+	"github.com/google/todo-tracks/repo"
+	"github.com/google/todo-tracks/repo/repotest"
 )
 
 const (

@@ -17,16 +17,17 @@ limitations under the License.
 package main
 
 import (
-	"dashboard"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"repo"
-	"resources"
 	"strings"
+
+	"github.com/google/todo-tracks/dashboard"
+	"github.com/google/todo-tracks/repo"
+	"github.com/google/todo-tracks/resources"
 )
 
 const (

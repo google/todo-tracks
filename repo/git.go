@@ -27,10 +27,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
-	hashFormat = "^([[:xdigit:]]){40}$"
+	hashFormat      = "^([[:xdigit:]]){40}$"
+	maxCacheEntries = 1000
 )
 
 var hashRegexp *regexp.Regexp
@@ -43,22 +45,17 @@ func init() {
 	}
 }
 
-type todosCacheEntry struct {
-	Present bool
-	Todos   []Line
-}
-
 type gitRepository struct {
 	DirPath            string
-	BlobTodosCache     map[string]todosCacheEntry
-	RevisionTodosCache map[Revision]todosCacheEntry
+	BlobTodosCache     *sync.Map
+	RevisionTodosCache *sync.Map
 }
 
 func NewGitRepository(dirPath, todoRegex, excludePaths string) Repository {
 	repository := &gitRepository{
 		DirPath:            dirPath,
-		BlobTodosCache:     make(map[string]todosCacheEntry),
-		RevisionTodosCache: make(map[Revision]todosCacheEntry),
+		BlobTodosCache:     &sync.Map{},
+		RevisionTodosCache: &sync.Map{},
 	}
 	go func() {
 		// Pre-load all of the TODOs for the current branches
@@ -277,7 +274,12 @@ func (repository *gitRepository) loadRevisionPaths(revision Revision, excludePat
 
 func (repository *gitRepository) asyncLoadRevisionTodos(
 	revision Revision, todoRegex, excludePaths string, todosChannel chan []Line) {
-	if !repository.RevisionTodosCache[revision].Present {
+	var todos []Line
+	cachedTodos, ok := repository.RevisionTodosCache.Load(revision)
+	if ok {
+		todos, ok = cachedTodos.([]Line)
+	}
+	if !ok {
 		revisionPaths := repository.loadRevisionPaths(revision, excludePaths)
 		todoChannels := make([]chan []Line, 0)
 		for _, path := range revisionPaths {
@@ -286,19 +288,14 @@ func (repository *gitRepository) asyncLoadRevisionTodos(
 			todoChannels = append(todoChannels, channel)
 			go repository.asyncLoadFileTodos(revision, path, blob, todoRegex, channel)
 		}
-		todos := make([]Line, 0)
 		for _, channel := range todoChannels {
 			pathTodos := <-channel
 			todos = append(todos, pathTodos...)
 		}
 		// TODO: Consider grouping the TODOs based on the containing file.
-		cacheEntry := todosCacheEntry{
-			Present: true,
-			Todos:   todos,
-		}
-		repository.RevisionTodosCache[revision] = cacheEntry
+		repository.RevisionTodosCache.Store(revision, todos)
 	}
-	todosChannel <- repository.RevisionTodosCache[revision].Todos
+	todosChannel <- todos
 }
 
 func (repository *gitRepository) LoadFileTodos(
@@ -311,10 +308,14 @@ func (repository *gitRepository) LoadFileTodos(
 
 func (repository *gitRepository) asyncLoadFileTodos(
 	revision Revision, path, blob, todoRegex string, todosChannel chan []Line) {
-	if !repository.BlobTodosCache[blob].Present {
+	var blobTodos []Line
+	cachedTodos, ok := repository.BlobTodosCache.Load(blob)
+	if ok {
+		blobTodos, ok = cachedTodos.([]Line)
+	}
+	if !ok {
 		raw := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
 		rawLines := strings.Split(raw, "\n")
-		blobTodos := make([]Line, 0)
 		for lineNumber, lineContents := range rawLines {
 			matched, err := regexp.MatchString(todoRegex, lineContents)
 			if err == nil && matched {
@@ -327,12 +328,9 @@ func (repository *gitRepository) asyncLoadFileTodos(
 				blobTodos = append(blobTodos, parseBlameOutputOrDie(path, out)...)
 			}
 		}
-		repository.BlobTodosCache[blob] = todosCacheEntry{
-			Present: true,
-			Todos:   blobTodos,
-		}
+		repository.BlobTodosCache.Store(blob, blobTodos)
 	}
-	todosChannel <- repository.BlobTodosCache[blob].Todos
+	todosChannel <- blobTodos
 }
 
 func (repository *gitRepository) ReadFileSnippetAtRevision(revision Revision, path string, startLine, endLine int) string {
