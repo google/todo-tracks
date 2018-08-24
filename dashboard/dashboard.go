@@ -23,10 +23,11 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
-	"repo"
-	"resources"
 	"sort"
 	"strconv"
+
+	"github.com/google/todo-tracks/repo"
+	"github.com/google/todo-tracks/resources"
 )
 
 const (

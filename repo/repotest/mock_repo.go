@@ -16,9 +16,12 @@ limitations under the License.
 
 package repotest
 
-import "errors"
-import "fmt"
-import "repo"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/google/todo-tracks/repo"
+)
 
 type MockRepository struct {
 	Aliases       []repo.Alias
