@@ -6,3 +6,5 @@
 {"timestamp":"1418846578","reviewRef":"refs/pull/1/head","targetRef":"refs/heads/master","requester":"ojarjur","description":"Enable deploying to Google App Engine Managed VMs\nThese two changes enable deploying an instance of the tracker to managed VMs.","baseCommit":"6e03731d1c5babfa15cbbe183a3a89374810ab71"}
 
 {"timestamp":"1418846578","reviewRef":"refs/pull/1/head","targetRef":"refs/heads/master","requester":"ojarjur","description":"Enable deploying to Google App Engine Managed VMs\n\nThese two changes enable deploying an instance of the tracker to managed VMs.","baseCommit":"6e03731d1c5babfa15cbbe183a3a89374810ab71"}
+
+{"timestamp":"1418846578","reviewRef":"refs/pull/1/head","targetRef":"refs/heads/master","requester":"ojarjur","description":"Enable deploying to Google App Engine Managed VMs\n\nThese two changes enable deploying an instance of the tracker to managed VMs.\n"}
