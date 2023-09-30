@@ -83,8 +83,27 @@ func (repository *gitRepository) runGitCommand(cmd *exec.Cmd) (string, error) {
 	return strings.Trim(string(out), " \n"), nil
 }
 
+func (repository *gitRepository) runGitCommandWithoutTrim(cmd *exec.Cmd) (string, error) {
+	cmd.Dir = repository.DirPath
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
 func (repository *gitRepository) runGitCommandOrDie(cmd *exec.Cmd) string {
 	out, err := repository.runGitCommand(cmd)
+	if err != nil {
+		log.Print(cmd.Args)
+		log.Print(out)
+		log.Fatal(err)
+	}
+	return out
+}
+
+func (repository *gitRepository) runGitCommandWithoutTrimOrDie(cmd *exec.Cmd) string {
+	out, err := repository.runGitCommandWithoutTrim(cmd)
 	if err != nil {
 		log.Print(cmd.Args)
 		log.Print(out)
@@ -314,7 +333,7 @@ func (repository *gitRepository) asyncLoadFileTodos(
 		blobTodos, ok = cachedTodos.([]Line)
 	}
 	if !ok {
-		raw := repository.runGitCommandOrDie(exec.Command("git", "show", blob))
+		raw := repository.runGitCommandWithoutTrimOrDie(exec.Command("git", "show", blob))
 		rawLines := strings.Split(raw, "\n")
 		for lineNumber, lineContents := range rawLines {
 			matched, err := regexp.MatchString(todoRegex, lineContents)
