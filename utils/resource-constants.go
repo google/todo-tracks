@@ -17,12 +17,14 @@ limitations under the License.
 // Program resource-constants generates Go source files that embed resource files read at compile time.
 //
 // Usage:
-//   bin/resource-constants --base_dir <directory-with-static-files>/ > src/resources/constants.go
+//
+//	bin/resource-constants --base_dir <directory-with-static-files>/ > src/resources/constants.go
 //
 // Using the generated code:
-//   import "resources"
 //
-//   var fileContents = resources.Constants["fileName"]
+//	import "resources"
+//
+//	var fileContents = resources.Constants["fileName"]
 package main
 
 import (

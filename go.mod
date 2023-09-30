@@ -1,3 +1,3 @@
 module github.com/google/todo-tracks
 
-go 1.14
+go 1.22
