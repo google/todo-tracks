@@ -1,0 +1,1 @@
+{"timestamp":"1696093077","reviewRef":"refs/pull/21/head","targetRef":"refs/heads/master","requester":"BenceSzalai","description":"Fix line numbers being off when file starts with linebreak(s)\n\nFixes #20\r\n\r\nThe problem was caused by trimming `\\n` on the command result that gave the contents of the files to be processed."}
